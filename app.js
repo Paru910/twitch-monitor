@@ -40,6 +40,9 @@ let fontSizeStep = parseInt(localStorage.getItem('fontSizeStep') || '0', 10);
 let raidEndTime = 0; // レイドウィンドウ終了時刻 (Unix ms)
 let raidSource = ''; // レイド元のチャンネル名
 
+let hasShownFollowError = false; // モデレーターエラーを1回のみ表示するためのフラグ
+let wsReconnectTimeout = null;   // WebSocketの再接続ループ防止用タイマー
+
 document.addEventListener('DOMContentLoaded', () => {
     // Restore Client ID if exists
     clientId = localStorage.getItem('twitch_client_id');
@@ -386,6 +389,7 @@ async function changeChannelPrompt() {
         localStorage.setItem('target_channel', targetChannelName);
         clearLogs();
         seenUsers.clear();
+        hasShownFollowError = false;
         localStorage.removeItem('seenUsers');
         await fetchTargetBroadcasterAndConnect();
     }
@@ -394,7 +398,12 @@ async function changeChannelPrompt() {
 // --- EventSub WebSocket ---
 function connectWebSocket() {
     if (ws) {
+        ws.onclose = null; // 再接続ループ防止
         ws.close();
+    }
+    if (wsReconnectTimeout) {
+        clearTimeout(wsReconnectTimeout);
+        wsReconnectTimeout = null;
     }
     ws = new WebSocket('wss://eventsub.wss.twitch.tv/ws');
 
@@ -419,12 +428,12 @@ function connectWebSocket() {
         }
     };
 
-    ws.onclose = () => {
-        console.log('WebSocket connection closed');
+    ws.onclose = (event) => {
+        console.log('WebSocket connection closed', event ? event.code : '', event ? event.reason : '');
         updateStatus('切断', 'red');
         if (accessToken) {
             // Reconnect later
-            setTimeout(connectWebSocket, 5000);
+            wsReconnectTimeout = setTimeout(connectWebSocket, 5000);
         }
     };
 
@@ -453,7 +462,8 @@ async function subscribeToEvents(sessionId) {
     // レイドは全チャンネル共通・追加スコープ不要
     types.push({ type: 'channel.raid', version: '1', condition: { to_broadcaster_user_id: targetBroadcasterId } });
 
-    for (const sub of types) {
+    // 10秒以内にすべてのサブスクリプションを完了させるため、並列(Promise.all)でリクエストを送信
+    await Promise.all(types.map(async (sub) => {
         try {
             const res = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
                 method: 'POST',
@@ -477,13 +487,16 @@ async function subscribeToEvents(sessionId) {
                 const errData = await res.json();
                 console.error(`Failed to subscribe to ${sub.type}:`, errData);
                 if (sub.type === 'channel.follow' && res.status === 403) {
-                    addCard({
-                        type: 'error',
-                        title: 'お知らせ',
-                        username: 'System',
-                        content: 'モデレーター権限をお持ちでないため、フォロー通知は受信できません。(コメントとレイドのみ取得します)',
-                        colorClass: 'gray'
-                    });
+                    if (!hasShownFollowError) {
+                        hasShownFollowError = true;
+                        addCard({
+                            type: 'error',
+                            title: 'お知らせ',
+                            username: 'System',
+                            content: 'モデレーター権限をお持ちでないため、フォロー通知は受信できません。(コメントとレイド等は取得します)',
+                            colorClass: 'gray'
+                        });
+                    }
                 } else {
                     addCard({
                         type: 'error',
@@ -499,7 +512,7 @@ async function subscribeToEvents(sessionId) {
         } catch (err) {
             console.error('Subscription error:', err);
         }
-    }
+    }));
 }
 
 function handleNotification(payload) {
