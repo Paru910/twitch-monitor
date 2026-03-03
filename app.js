@@ -40,7 +40,6 @@ let fontSizeStep = parseInt(localStorage.getItem('fontSizeStep') || '0', 10);
 let raidEndTime = 0; // レイドウィンドウ終了時刻 (Unix ms)
 let raidSource = ''; // レイド元のチャンネル名
 
-let hasShownFollowError = false; // モデレーターエラーを1回のみ表示するためのフラグ
 let wsReconnectTimeout = null;   // WebSocketの再接続ループ防止用タイマー
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -389,7 +388,6 @@ async function changeChannelPrompt() {
         localStorage.setItem('target_channel', targetChannelName);
         clearLogs();
         seenUsers.clear();
-        hasShownFollowError = false;
         localStorage.removeItem('seenUsers');
         await fetchTargetBroadcasterAndConnect();
     }
@@ -486,26 +484,6 @@ async function subscribeToEvents(sessionId) {
             if (!res.ok) {
                 const errData = await res.json();
                 console.error(`Failed to subscribe to ${sub.type}:`, errData);
-                if (sub.type === 'channel.follow' && res.status === 403) {
-                    if (!hasShownFollowError) {
-                        hasShownFollowError = true;
-                        addCard({
-                            type: 'error',
-                            title: 'お知らせ',
-                            username: 'System',
-                            content: 'モデレーター権限をお持ちでないため、フォロー通知は受信できません。(コメントとレイド等は取得します)',
-                            colorClass: 'gray'
-                        });
-                    }
-                } else {
-                    addCard({
-                        type: 'error',
-                        title: '連携エラー',
-                        username: 'System',
-                        content: `${sub.type} の連携に失敗しました: ${errData.message || 'Unknown error'}`,
-                        colorClass: 'red'
-                    });
-                }
             } else {
                 console.log(`Subscribed to ${sub.type}`);
             }
