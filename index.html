@@ -19,16 +19,24 @@
 <body class="bg-gray-900 text-white min-h-screen flex flex-col">
 
     <!-- ヘッダー / ステータスバー -->
-    <header class="sticky top-0 bg-gray-800 p-4 shadow-md z-10 flex justify-between items-center">
+    <header
+        class="sticky top-0 bg-gray-800 p-4 shadow-md z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div class="flex items-center gap-3">
             <div id="status-indicator" class="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]">
             </div>
             <span id="status-text" class="text-xl font-bold tracking-wider">未接続</span>
+            <span id="current-channel-text" class="text-sm text-gray-400 ml-2 hidden"></span>
         </div>
-        <button id="clear-logs-btn"
-            class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-sm hidden">
-            全ログ消去
-        </button>
+        <div class="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0">
+            <button id="change-channel-btn"
+                class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-sm hidden text-sm sm:text-base whitespace-nowrap">
+                ch変更
+            </button>
+            <button id="clear-logs-btn"
+                class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-sm hidden text-sm sm:text-base whitespace-nowrap">
+                全消去
+            </button>
+        </div>
     </header>
 
     <!-- メインコンテンツ -->
@@ -110,11 +118,15 @@
         const statusIndicator = document.getElementById('status-indicator');
         const statusText = document.getElementById('status-text');
         const clearLogsBtn = document.getElementById('clear-logs-btn');
+        const changeChannelBtn = document.getElementById('change-channel-btn');
+        const currentChannelText = document.getElementById('current-channel-text');
 
         // State
         let accessToken = null;
         let clientId = null;
-        let broadcasterId = null;
+        let loggedInUserId = null;
+        let targetBroadcasterId = null;
+        let targetChannelName = '';
         let ws = null;
         let seenUsers = new Set();
 
@@ -139,6 +151,7 @@
 
             loginBtn.addEventListener('click', initiateLogin);
             clearLogsBtn.addEventListener('click', clearLogs);
+            changeChannelBtn.addEventListener('click', changeChannelPrompt);
         });
 
         // --- Authentication ---
@@ -180,6 +193,8 @@
             loginSection.classList.remove('hidden');
             cardsContainer.classList.add('hidden');
             clearLogsBtn.classList.add('hidden');
+            changeChannelBtn.classList.add('hidden');
+            currentChannelText.classList.add('hidden');
             updateStatus('未接続', 'red');
         }
 
@@ -188,6 +203,7 @@
             cardsContainer.classList.remove('hidden');
             cardsContainer.classList.add('flex');
             clearLogsBtn.classList.remove('hidden');
+            changeChannelBtn.classList.remove('hidden');
             updateStatus('接続中...', 'yellow');
         }
 
@@ -211,6 +227,7 @@
         // --- Twitch API Calls ---
         async function fetchUserData() {
             try {
+                // 1. まずログインユーザー自身(アクセストークンの持ち主)のIDを取得
                 const res = await fetch('https://api.twitch.tv/helix/users', {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
@@ -225,12 +242,65 @@
                     throw new Error('Failed to fetch user data');
                 }
                 const data = await res.json();
-                broadcasterId = data.data[0].id;
+                loggedInUserId = data.data[0].id;
+
+                // 2. 監視先のチャンネルを決定（初期は自分自身のログイン名）
+                const savedChannel = localStorage.getItem('target_channel');
+                if (savedChannel) {
+                    targetChannelName = savedChannel;
+                } else {
+                    targetChannelName = data.data[0].login;
+                    localStorage.setItem('target_channel', targetChannelName);
+                }
+
+                await fetchTargetBroadcasterAndConnect();
+            } catch (err) {
+                console.error(err);
+                updateStatus('APIエラー', 'red');
+            }
+        }
+
+        async function fetchTargetBroadcasterAndConnect() {
+            updateStatus('確認中...', 'yellow');
+            try {
+                const res = await fetch(`https://api.twitch.tv/helix/users?login=${targetChannelName}`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Client-Id': clientId
+                    }
+                });
+                if (!res.ok) throw new Error('Failed to fetch target broadcaster');
+                const data = await res.json();
+
+                if (data.data.length === 0) {
+                    alert(`ユーザー "${targetChannelName}" が見つかりませんでした。ご自身のアカウントに戻ります。`);
+                    localStorage.removeItem('target_channel');
+                    targetChannelName = '';
+                    updateStatus('ユーザー不明', 'red');
+                    setTimeout(fetchUserData, 1000);
+                    return;
+                }
+
+                targetBroadcasterId = data.data[0].id;
+                currentChannelText.textContent = `監視先: ${data.data[0].display_name}`;
+                currentChannelText.classList.remove('hidden');
 
                 connectWebSocket();
             } catch (err) {
                 console.error(err);
                 updateStatus('APIエラー', 'red');
+            }
+        }
+
+        async function changeChannelPrompt() {
+            const newChannel = prompt('監視したいTwitchのチャンネルID（ユーザーID）を入力してください。\n※自身以外のチャンネルを指定した場合、セキュリティの都合上ビッツやポイント機能は取得できません。(コメントのみ監視します)', targetChannelName);
+            if (newChannel && newChannel.trim() !== '' && newChannel.trim() !== targetChannelName) {
+                targetChannelName = newChannel.trim().toLowerCase();
+                localStorage.setItem('target_channel', targetChannelName);
+                clearLogs();
+                seenUsers.clear();
+                localStorage.removeItem('seenUsers');
+                await fetchTargetBroadcasterAndConnect();
             }
         }
 
@@ -278,10 +348,15 @@
 
         async function subscribeToEvents(sessionId) {
             const types = [
-                { type: 'channel.chat.message', version: '1', condition: { broadcaster_user_id: broadcasterId, user_id: broadcasterId } },
-                { type: 'channel.cheer', version: '1', condition: { broadcaster_user_id: broadcasterId } },
-                { type: 'channel.channel_points_custom_reward_redemption.add', version: '1', condition: { broadcaster_user_id: broadcasterId } }
+                // チャット取得には、監視先ID(broadcaster_user_id)と読取者自身のID(user_id)が必要
+                { type: 'channel.chat.message', version: '1', condition: { broadcaster_user_id: targetBroadcasterId, user_id: loggedInUserId } }
             ];
+
+            // Twitch API仕様: ビッツ・ポイントは「監視対象とログインユーザーが同一」でないと権限エラーになるため、自分のチャンネルの時のみ登録
+            if (targetBroadcasterId === loggedInUserId) {
+                types.push({ type: 'channel.cheer', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
+                types.push({ type: 'channel.channel_points_custom_reward_redemption.add', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
+            }
 
             for (const sub of types) {
                 try {
@@ -324,11 +399,16 @@
                 const chatterName = event.chatter_user_name || event.chatter_user_login;
                 const message = event.message.text;
 
-                // 配信者自身のコメントは初コメ判定から除外するか？
-                // 必要に応じて if(chatterId === broadcasterId) return; を入れる
-                if (chatterId === broadcasterId) {
-                    seenUsers.add(chatterId); // 配信者は常に既知とする
+                // --- 動作確認テスト用コマンド ---
+                // 配信者自身がチャットで「!test」と発言した場合、全カードのテスト表示を行う
+                if (chatterId === targetBroadcasterId && message.trim() === '!test') {
+                    addCard({ type: 'first_comment', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue' });
+                    addCard({ type: 'cheer', title: '【テスト】ビッツ', username: chatterName, content: '応援してます！(テスト)', extra: '500 Bits', colorClass: 'purple' });
+                    addCard({ type: 'points', title: '【テスト】チャンネルポイント', username: chatterName, content: '(テストのテキスト入力)', extra: '足つぼマッサージ', colorClass: 'emerald' });
+                    return;
                 }
+
+                // (以前は本人のコメントを初見コメントから除外していましたが、設定要望により除外処理を廃止しました)
 
                 if (!seenUsers.has(chatterId)) {
                     // 新規ユーザー
