@@ -719,6 +719,18 @@ function addCard(data) {
 
     card.innerHTML = html;
 
+    // タップで既読状態を切り替える（縁をグレーにし、半透明にする）
+    card.addEventListener('click', () => {
+        const isRead = card.classList.toggle('is-read');
+        if (isRead) {
+            card.classList.remove(colors.border);
+            card.classList.add('border-gray-600', 'opacity-50');
+        } else {
+            card.classList.remove('border-gray-600', 'opacity-50');
+            card.classList.add(colors.border);
+        }
+    });
+
     // 一番下に追加（Twitchチャット欄と同じ上から下の流れ）
     cardsContainer.appendChild(card);
 
