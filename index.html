@@ -151,6 +151,9 @@
         let badgeMap = {}; // バッジ画像のマップ { 'set_id/id': imageUrl }
         // 文字サイズステップ (0=標準, -2〜+5まで許容。値が大きいほど大きい)
         let fontSizeStep = parseInt(localStorage.getItem('fontSizeStep') || '0', 10);
+        // レイド監視用: レイド発生後5分間の初コメをオレンジ表示
+        let raidEndTime = 0; // レイドウィンドウ終了時刻 (Unix ms)
+        let raidSource = ''; // レイド元のチャンネル名
 
         document.addEventListener('DOMContentLoaded', () => {
             // Restore Client ID if exists
@@ -482,6 +485,8 @@
                 types.push({ type: 'channel.cheer', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
                 types.push({ type: 'channel.channel_points_custom_reward_redemption.add', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
             }
+            // レイドは全チャンネル共通・追加スコープ不要
+            types.push({ type: 'channel.raid', version: '1', condition: { to_broadcaster_user_id: targetBroadcasterId } });
 
             for (const sub of types) {
                 try {
@@ -529,8 +534,10 @@
                 // 配信者自身がチャットで「!test」と発言した場合、全カードのテスト表示を行う
                 if (chatterId === targetBroadcasterId && event.message.text.trim() === '!test') {
                     addCard({ type: 'first_comment', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue' });
+                    addCard({ type: 'raid_comment', title: 'レイド テストchから', username: chatterName, content: 'レイドから来ました(テスト)', colorClass: 'orange' });
                     addCard({ type: 'cheer', title: '【テスト】ビッツ', username: chatterName, content: '応援してます！(テスト)', extra: '500 Bits', colorClass: 'purple' });
                     addCard({ type: 'points', title: '【テスト】チャンネルポイント', username: chatterName, content: '(テストのテキスト入力)', extra: '足つぼマッサージ', colorClass: 'emerald' });
+                    addCard({ type: 'raid', title: 'レイド!', username: 'テストチャンネル', contentHtml: '<span>テスト用レイド通知</span>', extra: '50人', colorClass: 'orange' });
                     return;
                 }
 
@@ -542,14 +549,15 @@
                     seenUsers.add(chatterId);
                     localStorage.setItem('seenUsers', JSON.stringify(Array.from(seenUsers)));
 
-                    // 青色カードで「初コメ」として目立たせる
+                    // レイドウィンドウ内の初コメはオレンジ（レイドから来た可能性が高い）
+                    const isRaider = Date.now() < raidEndTime;
                     addCard({
-                        type: 'first_comment',
-                        title: '初コメ ⭐',
+                        type: isRaider ? 'raid_comment' : 'first_comment',
+                        title: isRaider ? `レイド 🚨 ${raidSource}から` : '初コメ ⭐',
                         username: chatterName,
                         badges: event.badges,
                         contentHtml: messageHtml,
-                        colorClass: 'blue'
+                        colorClass: isRaider ? 'orange' : 'blue'
                     });
                 } else {
                     // 2回目以降のコメントも通常カードとして表示する
@@ -587,6 +595,21 @@
                     extra: rewardName,
                     colorClass: 'emerald'
                 });
+            } else if (type === 'channel.raid') {
+                // レイド通知: 5分間のレイドウィンドウを開始
+                const raiderName = event.from_broadcaster_user_name || event.from_broadcaster_user_login;
+                const viewers = event.viewers;
+                raidSource = raiderName;
+                raidEndTime = Date.now() + 5 * 60 * 1000; // 5分間
+
+                addCard({
+                    type: 'raid',
+                    title: 'レイド!',
+                    username: raiderName,
+                    contentHtml: `<span>🚨 <strong>${raiderName}</strong> からレイドが来ました!</span>`,
+                    extra: `${viewers}人`,
+                    colorClass: 'orange'
+                });
             }
         }
 
@@ -612,9 +635,10 @@
             const card = document.createElement('div');
 
             const colorMap = {
-                'blue': { bg: 'bg-blue-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: 'text-yellow-300 font-bold', extraBg: '' },
+                'blue': { bg: 'bg-blue-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
                 'purple': { bg: 'bg-purple-900', border: 'border-purple-500', textTitle: 'text-purple-300', textContent: 'text-gray-100', textExtra: 'text-yellow-400 font-extrabold', extraBg: '' },
                 'emerald': { bg: 'bg-emerald-900', border: 'border-emerald-500', textTitle: 'text-emerald-300', textContent: 'text-gray-100', textExtra: 'text-emerald-100', extraBg: 'bg-emerald-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
+                'orange': { bg: 'bg-orange-900', border: 'border-orange-500', textTitle: 'text-orange-300', textContent: 'text-gray-100', textExtra: 'text-orange-100 font-bold', extraBg: 'bg-orange-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
                 'gray': { bg: 'bg-gray-800', border: 'border-gray-600', textTitle: 'text-gray-400', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
             };
 
@@ -649,14 +673,24 @@
                     <div class="${colors.textExtra} ${colors.extraBg} text-sm font-bold">${data.extra}</div>
                     ${data.contentHtml ? `<div class="text-sm ${colors.textContent} break-words leading-snug mt-1">${messageHtmlContent}</div>` : ''}
                 `;
-            } else if (data.type === 'first_comment') {
-                // 初コメ: タイトルバッジ付きで目立たせる
+            } else if (data.type === 'first_comment' || data.type === 'raid_comment') {
+                // 初コメ / レイド初コメ: タイトルバッジ付きで目立たせる
+                const badgeColor = data.type === 'raid_comment' ? 'bg-orange-800' : 'bg-blue-800';
                 html = `
                     <div class="flex items-center gap-2 mb-1">
-                        <span class="text-xs font-bold ${colors.textTitle} bg-blue-800 px-2 py-0.5 rounded">${data.title}</span>
+                        <span class="text-xs font-bold ${colors.textTitle} ${badgeColor} px-2 py-0.5 rounded">${data.title}</span>
                         <span class="text-lg font-bold text-white truncate">${badgesHtml}${data.username}</span>
                     </div>
                     <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
+                `;
+            } else if (data.type === 'raid') {
+                // レイド通知自体
+                html = `
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <span class="text-lg font-bold text-white truncate">${data.username}</span>
+                    </div>
+                    <div class="${colors.textExtra} ${colors.extraBg} text-sm font-bold mb-1">${data.extra}</div>
+                    <div class="text-sm ${colors.textContent} break-words leading-snug mt-1">${messageHtmlContent}</div>
                 `;
             } else {
                 // 通常コメント: シンプルに（タイトルなし）
