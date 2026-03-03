@@ -72,7 +72,7 @@
         </div>
 
         <!-- イベントカードリストエリア -->
-        <div id="cards-container" class="hidden flex-col gap-4 pb-10">
+        <div id="cards-container" class="hidden flex-col gap-4 pb-16">
             <!-- 
                 カードのHTML構造例。実際はJavaScriptで動的に生成します。
                 
@@ -104,6 +104,12 @@
 
     </main>
 
+    <!-- 最新コメントへ戻る浮きボタン（自動スクロール停止中のみ表示） -->
+    <button id="scroll-to-bottom-btn"
+        class="hidden fixed bottom-6 right-6 z-50 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold rounded-full shadow-xl px-5 py-3 text-sm transition-all flex items-center gap-2">
+        ↓ 最新へ戻る
+    </button>
+
     <!-- アプリケーションロジック -->
     <script>
         const REDIRECT_URI = window.location.origin + window.location.pathname;
@@ -120,6 +126,7 @@
         const clearLogsBtn = document.getElementById('clear-logs-btn');
         const changeChannelBtn = document.getElementById('change-channel-btn');
         const currentChannelText = document.getElementById('current-channel-text');
+        const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
 
         // State
         let accessToken = null;
@@ -162,6 +169,16 @@
                 const threshold = 60; // 下端からこの距離以内なら自動スクロールON
                 const atBottom = mainEl.scrollHeight - mainEl.scrollTop - mainEl.clientHeight < threshold;
                 isAutoScroll = atBottom;
+                // 自動スクロールがOFFのときだけ「最新へ戻る」ボタンを表示
+                scrollToBottomBtn.classList.toggle('hidden', atBottom);
+            });
+
+            // 「最新へ戻る」ボタン押下でスクロールを一番下へ戻す
+            scrollToBottomBtn.addEventListener('click', () => {
+                const mainEl = document.getElementById('main-container');
+                mainEl.scrollTop = mainEl.scrollHeight;
+                isAutoScroll = true;
+                scrollToBottomBtn.classList.add('hidden');
             });
         });
 
@@ -216,6 +233,9 @@
             clearLogsBtn.classList.remove('hidden');
             changeChannelBtn.classList.remove('hidden');
             updateStatus('接続中...', 'yellow');
+            // 接続後は最新コメントが見えるよう一番下へスクロール
+            const mainEl = document.getElementById('main-container');
+            setTimeout(() => { mainEl.scrollTop = mainEl.scrollHeight; }, 50);
         }
 
         function updateStatus(text, color) {
