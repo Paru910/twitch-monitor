@@ -410,17 +410,28 @@
 
                 // (以前は本人のコメントを初見コメントから除外していましたが、設定要望により除外処理を廃止しました)
 
-                if (!seenUsers.has(chatterId)) {
-                    // 新規ユーザー
+                const isFirstComment = !seenUsers.has(chatterId);
+                if (isFirstComment) {
+                    // 初回コメント→記録しておく
                     seenUsers.add(chatterId);
                     localStorage.setItem('seenUsers', JSON.stringify(Array.from(seenUsers)));
 
+                    // 青色カードで「初コメ」として目立たせる
                     addCard({
                         type: 'first_comment',
-                        title: '初コメ',
+                        title: '初コメ ⭐',
                         username: chatterName,
                         content: message,
                         colorClass: 'blue'
+                    });
+                } else {
+                    // 2回目以降のコメントも通常カードとして表示する
+                    addCard({
+                        type: 'chat',
+                        title: 'コメント',
+                        username: chatterName,
+                        content: message,
+                        colorClass: 'gray'
                     });
                 }
             } else if (type === 'channel.cheer') {
@@ -458,7 +469,8 @@
             const colorMap = {
                 'blue': { bg: 'bg-blue-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
                 'purple': { bg: 'bg-purple-900', border: 'border-purple-500', textTitle: 'text-purple-300', textContent: 'text-gray-100', textExtra: 'text-yellow-400 font-extrabold', extraBg: '' },
-                'emerald': { bg: 'bg-emerald-900', border: 'border-emerald-500', textTitle: 'text-emerald-300', textContent: 'text-gray-100', textExtra: 'text-emerald-100', extraBg: 'bg-emerald-950 p-2 text-center rounded mt-3' }
+                'emerald': { bg: 'bg-emerald-900', border: 'border-emerald-500', textTitle: 'text-emerald-300', textContent: 'text-gray-100', textExtra: 'text-emerald-100', extraBg: 'bg-emerald-950 p-2 text-center rounded mt-3' },
+                'gray': { bg: 'bg-gray-800', border: 'border-gray-600', textTitle: 'text-gray-400', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
             };
 
             const colors = colorMap[data.colorClass];
