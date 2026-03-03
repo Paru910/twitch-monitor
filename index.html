@@ -27,7 +27,16 @@
             <span id="status-text" class="text-xl font-bold tracking-wider">未接続</span>
             <span id="current-channel-text" class="text-sm text-gray-400 ml-2 hidden"></span>
         </div>
-        <div class="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0">
+        <div class="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0 flex-wrap">
+            <!-- 文字サイズ変更ボタン -->
+            <button id="font-decrease-btn"
+                class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg font-bold transition-colors shadow-sm hidden text-sm whitespace-nowrap">
+                A−
+            </button>
+            <button id="font-increase-btn"
+                class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg font-bold transition-colors shadow-sm hidden text-sm whitespace-nowrap">
+                A＋
+            </button>
             <button id="change-channel-btn"
                 class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-sm hidden text-sm sm:text-base whitespace-nowrap">
                 ch変更
@@ -127,6 +136,8 @@
         const changeChannelBtn = document.getElementById('change-channel-btn');
         const currentChannelText = document.getElementById('current-channel-text');
         const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
+        const fontIncreaseBtn = document.getElementById('font-increase-btn');
+        const fontDecreaseBtn = document.getElementById('font-decrease-btn');
 
         // State
         let accessToken = null;
@@ -138,6 +149,8 @@
         let seenUsers = new Set();
         let isAutoScroll = true; // 自動スクロールが有効かどうか
         let badgeMap = {}; // バッジ画像のマップ { 'set_id/id': imageUrl }
+        // 文字サイズステップ (0=標準, -2〜+5まで許容。値が大きいほど大きい)
+        let fontSizeStep = parseInt(localStorage.getItem('fontSizeStep') || '0', 10);
 
         document.addEventListener('DOMContentLoaded', () => {
             // Restore Client ID if exists
@@ -158,9 +171,28 @@
 
             checkAuth();
 
+            // 初期フォントサイズを適用
+            applyFontSize();
+
             loginBtn.addEventListener('click', initiateLogin);
             clearLogsBtn.addEventListener('click', clearLogs);
             changeChannelBtn.addEventListener('click', changeChannelPrompt);
+
+            // A+ / A- ボタン
+            fontIncreaseBtn.addEventListener('click', () => {
+                if (fontSizeStep < 5) {
+                    fontSizeStep++;
+                    localStorage.setItem('fontSizeStep', fontSizeStep);
+                    applyFontSize();
+                }
+            });
+            fontDecreaseBtn.addEventListener('click', () => {
+                if (fontSizeStep > -2) {
+                    fontSizeStep--;
+                    localStorage.setItem('fontSizeStep', fontSizeStep);
+                    applyFontSize();
+                }
+            });
 
             // スクロール位置で自動スクロールのON/OFFを切り替える
             // 一番下にいるときはON、手動でスクロールアップしたらOFF
@@ -222,6 +254,8 @@
             cardsContainer.classList.add('hidden');
             clearLogsBtn.classList.add('hidden');
             changeChannelBtn.classList.add('hidden');
+            fontIncreaseBtn.classList.add('hidden');
+            fontDecreaseBtn.classList.add('hidden');
             currentChannelText.classList.add('hidden');
             updateStatus('未接続', 'red');
         }
@@ -232,10 +266,21 @@
             cardsContainer.classList.add('flex');
             clearLogsBtn.classList.remove('hidden');
             changeChannelBtn.classList.remove('hidden');
+            fontIncreaseBtn.classList.remove('hidden');
+            fontDecreaseBtn.classList.remove('hidden');
             updateStatus('接続中...', 'yellow');
             // 接続後は最新コメントが見えるよう一番下へスクロール
             const mainEl = document.getElementById('main-container');
             setTimeout(() => { mainEl.scrollTop = mainEl.scrollHeight; }, 50);
+        }
+
+        // A+/A-ボタンによる文字サイズを適用する
+        // cardsContainerのfont-sizeをステップに応じて変化させる（基準16px、1ステップ=2px）
+        function applyFontSize() {
+            const basePx = 14; // 基準サイズ（px）
+            const stepPx = 2;  // 1ステップあたりの変化量
+            const newSize = basePx + fontSizeStep * stepPx;
+            cardsContainer.style.fontSize = `${newSize}px`;
         }
 
         function updateStatus(text, color) {
