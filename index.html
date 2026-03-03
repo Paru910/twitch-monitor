@@ -293,7 +293,8 @@
             }
             localStorage.setItem('twitch_client_id', inputId);
 
-            const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${inputId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(SCOPES)}`;
+            // force_verify=true を付与して、毎回必ず同意画面（最新のスコープ要求）を表示させる
+            const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${inputId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(SCOPES)}&force_verify=true`;
             window.location.href = authUrl;
         }
 
@@ -622,8 +623,8 @@
                 const messageHtml = buildMessageHtml(event.message);
 
                 // --- 動作確認テスト用コマンド ---
-                // 配信者自身がチャットで「!test」と発言した場合、全カードのテスト表示を行う
-                if (chatterId === targetBroadcasterId && event.message.text.trim() === '!test') {
+                // ツールにログインしている本人がチャットで「!test」と発言した場合、全カードのテスト表示を行う
+                if (chatterId === loggedInUserId && event.message.text.trim() === '!test') {
                     addCard({ type: 'first_comment', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue' });
                     addCard({ type: 'raid_comment', title: 'レイド テストchから', username: chatterName, content: 'レイドから来ました(テスト)', colorClass: 'orange' });
                     addCard({ type: 'cheer', title: '【テスト】ビッツ', username: chatterName, content: '応援してます！(テスト)', extra: '500 Bits', colorClass: 'purple' });
@@ -829,15 +830,6 @@
             }
 
             card.innerHTML = html;
-
-            // タップで消去
-            card.addEventListener('click', () => {
-                card.style.opacity = '0';
-                card.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    card.remove();
-                }, 300);
-            });
 
             // 一番下に追加（Twitchチャット欄と同じ上から下の流れ）
             cardsContainer.appendChild(card);
