@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitch Viewer - 初コメ・イベント検知</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            /* タップ時のハイライトを無効化（独自実装を使用） */
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+
+    <!-- ヘッダー / ステータスバー -->
+    <header class="sticky top-0 bg-gray-800 p-4 shadow-md z-10 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div id="status-indicator" class="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+            </div>
+            <span id="status-text" class="text-xl font-bold tracking-wider">未接続</span>
+        </div>
+        <button id="clear-logs-btn"
+            class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-sm hidden">
+            全ログ消去
+        </button>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-1 p-4 flex flex-col gap-4 overflow-y-auto" id="main-container">
+
+        <!-- ログイン画面エリア -->
+        <div id="login-section" class="flex flex-col items-center justify-center flex-1 h-full gap-8 mt-10">
+            <div class="text-center">
+                <h1 class="text-3xl font-extrabold mb-4">Twitch 配信ビューア</h1>
+                <p class="text-gray-400 text-lg leading-relaxed">
+                    初見コメント・ビッツ・ポイントを<br>スマホでリアルタイム検知
+                </p>
+            </div>
+            <div class="text-center w-full max-w-sm px-4 mt-6">
+                <button id="login-btn"
+                    class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-5 rounded-xl text-xl shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center gap-3">
+                    <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
+                    </svg>
+                    配信アカウントで連携する
+                </button>
+                <p class="text-gray-400 mt-5 text-sm leading-relaxed">
+                    ※Twitchの認証画面が表示されます。<br>
+                    <span class="text-yellow-500 text-xs">（テスト環境では「You are about to leave
+                        Twitch...」と警告が出ますが、そのまま進んでください）</span><br>
+                    一度連携すると次回から自動で繋がります。
+                </p>
+            </div>
+        </div>
+
+        <!-- イベントカードリストエリア -->
+        <div id="cards-container" class="hidden flex-col gap-4 pb-10">
+            <!-- 
+                カードのHTML構造例。実際はJavaScriptで動的に生成します。
+                
+                ■ 初コメ (青)
+                <div class="bg-blue-900 border-l-8 border-blue-500 p-5 rounded-lg shadow-lg cursor-pointer active:opacity-50 transition-opacity">
+                    <div class="text-blue-300 text-base font-bold mb-1">初コメ</div>
+                    <div class="text-3xl font-bold text-white tracking-wide">ユーザー名</div>
+                    <div class="text-xl mt-3 text-gray-100 break-words leading-snug">こんにちは！初見です。</div>
+                </div>
+
+                ■ ビッツ (紫)
+                <div class="bg-purple-900 border-l-8 border-purple-500 p-5 rounded-lg shadow-lg cursor-pointer active:opacity-50 transition-opacity">
+                    <div class="text-purple-300 text-base font-bold mb-1 flex items-center justify-between">
+                        <span>ビッツ</span>
+                        <span class="text-yellow-400 font-extrabold">100 Bits</span>
+                    </div>
+                    <div class="text-3xl font-bold text-white tracking-wide">ユーザー名</div>
+                    <div class="text-xl mt-3 text-gray-100 break-words leading-snug">いつも応援してます！</div>
+                </div>
+                
+                ■ チャンネルポイント (緑)
+                <div class="bg-emerald-900 border-l-8 border-emerald-500 p-5 rounded-lg shadow-lg cursor-pointer active:opacity-50 transition-opacity">
+                    <div class="text-emerald-300 text-base font-bold mb-1">チャンネルポイント</div>
+                    <div class="text-3xl font-bold text-white tracking-wide">ユーザー名</div>
+                    <div class="text-xl mt-3 text-emerald-100 font-bold bg-emerald-950 p-2 text-center rounded mt-3">スクワット10回</div>
+                </div>
+            -->
+        </div>
+
+    </main>
+
+    <!-- アプリケーションロジック -->
+    <script>
+        const REDIRECT_URI = window.location.origin + window.location.pathname;
+        // EventSub用のチャット取得やビッツ取得に必要なスコープ
+        const SCOPES = 'user:read:chat bits:read channel:read:redemptions';
+
+        // TODO: ここに取得したTwitch Client IDをハードコーディングしてください
+        const TWITCH_CLIENT_ID = '251rxa5wb1ubyf0j00xzg5qc9b59wy';
+
+        // DOM Elements
+        const loginBtn = document.getElementById('login-btn');
+        const loginSection = document.getElementById('login-section');
+        const cardsContainer = document.getElementById('cards-container');
+        const statusIndicator = document.getElementById('status-indicator');
+        const statusText = document.getElementById('status-text');
+        const clearLogsBtn = document.getElementById('clear-logs-btn');
+
+        // State
+        let accessToken = null;
+        let broadcasterId = null;
+        let ws = null;
+        let seenUsers = new Set();
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Load seen users from localStorage to persist across reloads
+            const storedUsers = localStorage.getItem('seenUsers');
+            if (storedUsers) {
+                try {
+                    seenUsers = new Set(JSON.parse(storedUsers));
+                } catch (e) {
+                    seenUsers = new Set();
+                }
+            }
+
+            checkAuth();
+
+            loginBtn.addEventListener('click', initiateLogin);
+            clearLogsBtn.addEventListener('click', clearLogs);
+        });
+
+        // --- Authentication ---
+        function initiateLogin() {
+            if (TWITCH_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+                alert('ソースコード内の TWITCH_CLIENT_ID が設定されていません。実装者に確認してください。');
+                return;
+            }
+
+            const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(SCOPES)}`;
+            window.location.href = authUrl;
+        }
+
+        function checkAuth() {
+            // Check Hash for Implicit Grant Token
+            const hash = window.location.hash;
+            if (hash && hash.includes('access_token')) {
+                const params = new URLSearchParams(hash.substring(1));
+                accessToken = params.get('access_token');
+                localStorage.setItem('twitch_access_token', accessToken);
+                // Clear hash
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            } else {
+                accessToken = localStorage.getItem('twitch_access_token');
+            }
+
+            if (accessToken) {
+                showAppUI();
+                fetchUserData();
+            } else {
+                showLoginUI();
+            }
+        }
+
+        // --- UI State Management ---
+        function showLoginUI() {
+            loginSection.classList.remove('hidden');
+            cardsContainer.classList.add('hidden');
+            clearLogsBtn.classList.add('hidden');
+            updateStatus('未接続', 'red');
+        }
+
+        function showAppUI() {
+            loginSection.classList.add('hidden');
+            cardsContainer.classList.remove('hidden');
+            cardsContainer.classList.add('flex');
+            clearLogsBtn.classList.remove('hidden');
+            updateStatus('接続中...', 'yellow');
+        }
+
+        function updateStatus(text, color) {
+            statusText.textContent = text;
+            if (color === 'red') {
+                statusIndicator.className = 'w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]';
+            } else if (color === 'yellow') {
+                statusIndicator.className = 'w-4 h-4 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]';
+            } else if (color === 'green') {
+                statusIndicator.className = 'w-4 h-4 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('twitch_access_token');
+            accessToken = null;
+            showLoginUI();
+        }
+
+        // --- Twitch API Calls ---
+        async function fetchUserData() {
+            if (TWITCH_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+                updateStatus('Client ID未設定', 'red');
+                return;
+            }
+
+            try {
+                const res = await fetch('https://api.twitch.tv/helix/users', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Client-Id': TWITCH_CLIENT_ID
+                    }
+                });
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        logout();
+                        return;
+                    }
+                    throw new Error('Failed to fetch user data');
+                }
+                const data = await res.json();
+                broadcasterId = data.data[0].id;
+
+                connectWebSocket();
+            } catch (err) {
+                console.error(err);
+                updateStatus('APIエラー', 'red');
+            }
+        }
+
+        // --- EventSub WebSocket ---
+        function connectWebSocket() {
+            if (ws) {
+                ws.close();
+            }
+            ws = new WebSocket('wss://eventsub.wss.twitch.tv/ws');
+
+            ws.onopen = () => {
+                console.log('WebSocket connection opened');
+            };
+
+            ws.onmessage = async (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.metadata.message_type === 'session_welcome') {
+                    const sessionId = data.payload.session.id;
+                    updateStatus('接続完了', 'green');
+                    await subscribeToEvents(sessionId);
+                } else if (data.metadata.message_type === 'session_keepalive') {
+                    // Keepalive
+                } else if (data.metadata.message_type === 'notification') {
+                    handleNotification(data.payload);
+                } else if (data.metadata.message_type === 'session_reconnect') {
+                    console.log('Reconnect requested');
+                    // Twitch will send a new WebSocket URL to connect to, but a simple reload/reconnect is often enough.
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket connection closed');
+                updateStatus('切断', 'red');
+                if (accessToken) {
+                    // Reconnect later
+                    setTimeout(connectWebSocket, 5000);
+                }
+            };
+
+            ws.onerror = (err) => {
+                console.error('WebSocket error:', err);
+            };
+        }
+
+        async function subscribeToEvents(sessionId) {
+            const types = [
+                { type: 'channel.chat.message', version: '1', condition: { broadcaster_user_id: broadcasterId, user_id: broadcasterId } },
+                { type: 'channel.cheer', version: '1', condition: { broadcaster_user_id: broadcasterId } },
+                { type: 'channel.channel_points_custom_reward_redemption.add', version: '1', condition: { broadcaster_user_id: broadcasterId } }
+            ];
+
+            for (const sub of types) {
+                try {
+                    const res = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Client-Id': TWITCH_CLIENT_ID,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            type: sub.type,
+                            version: sub.version,
+                            condition: sub.condition,
+                            transport: {
+                                method: 'websocket',
+                                session_id: sessionId
+                            }
+                        })
+                    });
+
+                    if (!res.ok) {
+                        const errData = await res.json();
+                        console.error(`Failed to subscribe to ${sub.type}:`, errData);
+                    } else {
+                        console.log(`Subscribed to ${sub.type}`);
+                    }
+                } catch (err) {
+                    console.error('Subscription error:', err);
+                }
+            }
+        }
+
+        function handleNotification(payload) {
+            const type = payload.subscription.type;
+            const event = payload.event;
+
+            if (type === 'channel.chat.message') {
+                const chatterId = event.chatter_user_id;
+                const chatterName = event.chatter_user_name || event.chatter_user_login;
+                const message = event.message.text;
+
+                // 配信者自身のコメントは初コメ判定から除外するか？
+                // 必要に応じて if(chatterId === broadcasterId) return; を入れる
+                if (chatterId === broadcasterId) {
+                    seenUsers.add(chatterId); // 配信者は常に既知とする
+                }
+
+                if (!seenUsers.has(chatterId)) {
+                    // 新規ユーザー
+                    seenUsers.add(chatterId);
+                    localStorage.setItem('seenUsers', JSON.stringify(Array.from(seenUsers)));
+
+                    addCard({
+                        type: 'first_comment',
+                        title: '初コメ',
+                        username: chatterName,
+                        content: message,
+                        colorClass: 'blue'
+                    });
+                }
+            } else if (type === 'channel.cheer') {
+                const bits = event.bits;
+                const message = event.message || '';
+                const userName = event.is_anonymous ? 'アノニマス' : (event.user_name || event.user_login);
+
+                addCard({
+                    type: 'cheer',
+                    title: 'ビッツ',
+                    username: userName,
+                    content: message,
+                    extra: `${bits} Bits`,
+                    colorClass: 'purple'
+                });
+            } else if (type === 'channel.channel_points_custom_reward_redemption.add') {
+                const rewardName = event.reward.title;
+                const userName = event.user_name || event.user_login;
+
+                addCard({
+                    type: 'points',
+                    title: 'チャンネルポイント',
+                    username: userName,
+                    content: event.user_input || '',
+                    extra: rewardName,
+                    colorClass: 'emerald'
+                });
+            }
+        }
+
+        // --- UI Card Rendering ---
+        function addCard(data) {
+            const card = document.createElement('div');
+
+            const colorMap = {
+                'blue': { bg: 'bg-blue-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
+                'purple': { bg: 'bg-purple-900', border: 'border-purple-500', textTitle: 'text-purple-300', textContent: 'text-gray-100', textExtra: 'text-yellow-400 font-extrabold', extraBg: '' },
+                'emerald': { bg: 'bg-emerald-900', border: 'border-emerald-500', textTitle: 'text-emerald-300', textContent: 'text-gray-100', textExtra: 'text-emerald-100', extraBg: 'bg-emerald-950 p-2 text-center rounded mt-3' }
+            };
+
+            const colors = colorMap[data.colorClass];
+
+            card.className = `${colors.bg} border-l-8 ${colors.border} p-5 rounded-lg shadow-lg cursor-pointer transition-all duration-300 flex flex-col`;
+
+            let extraHTML = '';
+            let contentHTML = '';
+
+            if (data.extra || data.type === 'points') {
+                if (data.type === 'cheer') {
+                    extraHTML = `
+                     <div class="${colors.textTitle} text-base font-bold mb-1 flex items-center justify-between">
+                        <span>${data.title}</span>
+                        <span class="${colors.textExtra}">${data.extra}</span>
+                     </div>`;
+                } else if (data.type === 'points') {
+                    extraHTML = `<div class="${colors.textTitle} text-base font-bold mb-1">${data.title}</div>`;
+                    contentHTML = `
+                     <div class="text-3xl font-bold text-white tracking-wide">${data.username}</div>
+                     ${data.content ? `<div class="text-xl mt-3 ${colors.textContent} break-words leading-snug">${data.content}</div>` : ''}
+                     <div class="text-xl font-bold ${colors.textExtra} ${colors.extraBg}">${data.extra}</div>
+                     `;
+                }
+            }
+
+            if (!extraHTML) {
+                extraHTML = `<div class="${colors.textTitle} text-base font-bold mb-1">${data.title}</div>`;
+            }
+
+            if (!contentHTML) {
+                contentHTML = `
+                 <div class="text-3xl font-bold text-white tracking-wide">${data.username}</div>
+                 <div class="text-xl mt-3 ${colors.textContent} break-words leading-snug">${data.content}</div>
+                 `;
+            }
+
+            card.innerHTML = extraHTML + contentHTML;
+
+            // Tap to dismiss
+            card.addEventListener('click', () => {
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    card.remove();
+                }, 300);
+            });
+
+            // Add to top
+            cardsContainer.insertBefore(card, cardsContainer.firstChild);
+        }
+
+        function clearLogs() {
+            cardsContainer.innerHTML = '';
+        }
+    </script>
+</body>
+
+</html>

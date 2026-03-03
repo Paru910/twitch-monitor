@@ -1,0 +1,59 @@
+システム開発指示書：Twitch配信支援「初コメ・イベント検知」スマホビューア
+1. プロジェクト概要
+PCを介さず、スマホのブラウザ単体で動作するTwitch配信者向け通知モニターを構築する。GitHub Pagesで公開可能な**「サーバーレス（単一HTML形式）」**の静的Webアプリケーションとする。
+
+2. 技術スタック・制約
+言語: HTML5, CSS (Tailwind CSS推奨), JavaScript (Vanilla JS)
+
+通信: * OAuth: Implicit Grant Flow（ブラウザ側でトークン取得）
+
+Real-time: Twitch EventSub over WebSockets (WSS)
+
+制約: * Node.js等のバックエンドは一切使用しない。
+
+ライブラリはCDN経由で取得するか、標準APIのみを使用する。
+
+3. 主要機能（ロジック詳細）
+A. 認証・認可
+初回起動時にTwitchログインボタンを表示。
+
+取得した access_token を localStorage に保存し、リロード時に再ログインを不要にする。
+
+必要スコープ: user:read:chat, bits:read, channel:read:redemptions
+
+B. イベント監視（EventSub）
+WebSocket接続後、以下の3つのイベントを購読（Subscribe）する。
+
+初コメ検知 (channel.chat.message):
+
+配信開始からの発言ユーザーIDを Set または localStorage で管理。
+
+リストに存在しないユーザーのメッセージのみを「初コメ」として抽出。
+
+挨拶以外の文脈（質問や感想）にも反応できるよう、メッセージ全文を表示する。
+
+ビッツ (channel.cheer):
+
+投げられた金額とメッセージをリアルタイム表示。
+
+チャンネルポイント (channel.channel_points_custom_reward_redemption.add):
+
+交換された報酬名とユーザー名を表示。
+
+C. ユーザーインターフェース（UI/UX）
+スマホ最適化: 縦画面で見やすいカード型レイアウト。
+
+視認性: * 初コメ（青）、ビッツ（紫）、ポイント（緑）でカードの色を分ける。
+
+遠目でも読めるよう、フォントサイズは大きめに設定。
+
+操作性: * 各カードはタップすることで画面から消去（既読処理）できる。
+
+画面上部に「接続ステータス」と「ログ消去ボタン」を配置。
+
+4. 構築・デプロイ手順
+Twitch Developer ConsoleでのClient ID取得設定。
+
+index.html へのコード実装。
+
+GitHubリポジトリへのプッシュおよびGitHub Pagesの有効化。
