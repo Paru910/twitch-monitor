@@ -130,6 +130,7 @@
         let ws = null;
         let seenUsers = new Set();
         let isAutoScroll = true; // 自動スクロールが有効かどうか
+        let badgeMap = {}; // バッジ画像のマップ { 'set_id/id': imageUrl }
 
         document.addEventListener('DOMContentLoaded', () => {
             // Restore Client ID if exists
@@ -295,11 +296,49 @@
                 currentChannelText.textContent = `監視先: ${data.data[0].display_name}`;
                 currentChannelText.classList.remove('hidden');
 
+                // バッジ画像マップを取得してからWebSocketへ接続
+                await fetchBadges();
                 connectWebSocket();
             } catch (err) {
                 console.error(err);
                 updateStatus('APIエラー', 'red');
             }
+        }
+
+        // グローバルバッジとチャンネル固有バッジをTwitch APIから取得しbadgeMapに記憶する
+        async function fetchBadges() {
+            badgeMap = {};
+            const headers = { 'Authorization': `Bearer ${accessToken}`, 'Client-Id': clientId };
+            try {
+                // グローバルバッジ（全チャンネル共通）
+                const globalRes = await fetch('https://api.twitch.tv/helix/chat/badges/global', { headers });
+                const globalData = await globalRes.json();
+                for (const set of (globalData.data || [])) {
+                    for (const version of (set.versions || [])) {
+                        badgeMap[`${set.set_id}/${version.id}`] = version.image_url_2x;
+                    }
+                }
+                // チャンネル固有バッジ（サブスクライバーバッジなど）
+                const chanRes = await fetch(`https://api.twitch.tv/helix/chat/badges?broadcaster_id=${targetBroadcasterId}`, { headers });
+                const chanData = await chanRes.json();
+                for (const set of (chanData.data || [])) {
+                    for (const version of (set.versions || [])) {
+                        badgeMap[`${set.set_id}/${version.id}`] = version.image_url_2x;
+                    }
+                }
+            } catch (err) {
+                console.warn('バッジの取得に失敗しました:', err);
+            }
+        }
+
+        // イベントのBadges配列から画像タグのHTMLを生成
+        function buildBadgesHtml(badges) {
+            if (!badges || badges.length === 0) return '';
+            return badges.map(badge => {
+                const url = badgeMap[`${badge.set_id}/${badge.id}`];
+                if (!url) return '';
+                return `<img src="${url}" alt="${badge.set_id}" title="${badge.set_id}" class="inline-block align-middle" style="height:1.1em;margin-right:3px;vertical-align:middle;">`;
+            }).join('');
         }
 
         async function changeChannelPrompt() {
@@ -432,6 +471,7 @@
                         type: 'first_comment',
                         title: '初コメ ⭐',
                         username: chatterName,
+                        badges: event.badges,
                         contentHtml: messageHtml,
                         colorClass: 'blue'
                     });
@@ -441,6 +481,7 @@
                         type: 'chat',
                         title: '',
                         username: chatterName,
+                        badges: event.badges,
                         contentHtml: messageHtml,
                         colorClass: 'gray'
                     });
@@ -502,6 +543,8 @@
             };
 
             const colors = colorMap[data.colorClass];
+            // バッジのHTMLを生成
+            const badgesHtml = buildBadgesHtml(data.badges);
             // コンテンツHTML: data.contentHtml が優先、なければ data.content をテキストとして扱う
             const messageHtmlContent = data.contentHtml !== undefined
                 ? data.contentHtml
@@ -516,7 +559,7 @@
                 // ビッツ: ユーザー名と金額を横並び
                 html = `
                     <div class="flex items-center justify-between gap-2 mb-1">
-                        <span class="text-lg font-bold text-white truncate">${data.username}</span>
+                        <span class="text-lg font-bold text-white truncate">${badgesHtml}${data.username}</span>
                         <span class="${colors.textExtra} text-sm whitespace-nowrap">${data.extra}</span>
                     </div>
                     <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
@@ -525,7 +568,7 @@
                 // ポイント: 報酬名を目立たせる
                 html = `
                     <div class="flex items-center justify-between gap-2 mb-1">
-                        <span class="text-lg font-bold text-white truncate">${data.username}</span>
+                        <span class="text-lg font-bold text-white truncate">${badgesHtml}${data.username}</span>
                     </div>
                     <div class="${colors.textExtra} ${colors.extraBg} text-sm font-bold">${data.extra}</div>
                     ${data.contentHtml ? `<div class="text-sm ${colors.textContent} break-words leading-snug mt-1">${messageHtmlContent}</div>` : ''}
@@ -535,14 +578,14 @@
                 html = `
                     <div class="flex items-center gap-2 mb-1">
                         <span class="text-xs font-bold ${colors.textTitle} bg-blue-800 px-2 py-0.5 rounded">${data.title}</span>
-                        <span class="text-lg font-bold text-white truncate">${data.username}</span>
+                        <span class="text-lg font-bold text-white truncate">${badgesHtml}${data.username}</span>
                     </div>
                     <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
                 `;
             } else {
                 // 通常コメント: シンプルに（タイトルなし）
                 html = `
-                    <div class="text-sm font-bold ${colors.textTitle} mb-0.5">${data.username}</div>
+                    <div class="text-sm font-bold ${colors.textTitle} mb-0.5">${badgesHtml}${data.username}</div>
                     <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
                 `;
             }
