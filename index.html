@@ -129,6 +129,7 @@
         let targetChannelName = '';
         let ws = null;
         let seenUsers = new Set();
+        let isAutoScroll = true; // 自動スクロールが有効かどうか
 
         document.addEventListener('DOMContentLoaded', () => {
             // Restore Client ID if exists
@@ -152,6 +153,15 @@
             loginBtn.addEventListener('click', initiateLogin);
             clearLogsBtn.addEventListener('click', clearLogs);
             changeChannelBtn.addEventListener('click', changeChannelPrompt);
+
+            // スクロール位置で自動スクロールのON/OFFを切り替える
+            // 一番下にいるときはON、手動でスクロールアップしたらOFF
+            const mainEl = document.getElementById('main-container');
+            mainEl.addEventListener('scroll', () => {
+                const threshold = 60; // 下端からこの距離以内なら自動スクロールON
+                const atBottom = mainEl.scrollHeight - mainEl.scrollTop - mainEl.clientHeight < threshold;
+                isAutoScroll = atBottom;
+            });
         });
 
         // --- Authentication ---
@@ -548,8 +558,14 @@
                 }, 300);
             });
 
-            // 一番上に追加
-            cardsContainer.insertBefore(card, cardsContainer.firstChild);
+            // 一番下に追加（Twitchチャット欄と同じ上から下の流れ）
+            cardsContainer.appendChild(card);
+
+            // 自動スクロールが有効な場合、最新コメントが見えるよう一番下へスクロール
+            if (isAutoScroll) {
+                const mainEl = document.getElementById('main-container');
+                mainEl.scrollTop = mainEl.scrollHeight;
+            }
         }
 
         function clearLogs() {
