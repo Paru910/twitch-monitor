@@ -13,15 +13,30 @@
 <body class="bg-gray-900 text-white h-screen flex flex-col overflow-hidden">
 
     <!-- ヘッダー / ステータスバー -->
-    <header
-        class="sticky top-0 bg-gray-800 p-4 shadow-md z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-        <div class="flex items-center gap-3">
-            <div id="status-indicator" class="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+    <header class="sticky top-0 bg-gray-800 p-3 sm:p-4 shadow-md z-10 flex flex-col w-full transition-all duration-300">
+        <div class="flex items-center justify-between w-full relative">
+            <div class="flex items-center gap-3">
+                <div id="status-indicator" class="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                </div>
+                <span id="status-text" class="text-xl font-bold tracking-wider">未接続</span>
+                <span id="current-channel-text" class="text-sm text-gray-400 ml-2 hidden"></span>
             </div>
-            <span id="status-text" class="text-xl font-bold tracking-wider">未接続</span>
-            <span id="current-channel-text" class="text-sm text-gray-400 ml-2 hidden"></span>
+            <!-- ▼ヘッダー折りたたみボタン -->
+            <button id="toggle-header-btn"
+                class="text-gray-400 hover:text-white p-1 rounded hidden transition-colors bg-gray-700">
+                <!-- 上向き(開いている状態) -->
+                <svg id="toggle-icon-up" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                </svg>
+                <!-- 下向き(閉じている状態) -->
+                <svg id="toggle-icon-down" class="w-7 h-7 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
         </div>
-        <div class="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0 flex-wrap">
+
+        <!-- ▼折りたたみ対象のボタン群エリア -->
+        <div id="header-buttons" class="flex gap-2 w-full mt-3 flex-wrap transition-all duration-300">
             <!-- ヘルプボタン -->
             <button id="help-btn"
                 class="bg-gray-600 hover:bg-gray-500 text-white w-9 h-9 rounded-full font-bold transition-colors shadow-sm hidden flex items-center justify-center text-sm">

@@ -19,6 +19,10 @@ const fontDecreaseBtn = document.getElementById('font-decrease-btn');
 const helpBtn = document.getElementById('help-btn');
 const helpModal = document.getElementById('help-modal');
 const closeHelpBtn = document.getElementById('close-help-btn');
+const toggleHeaderBtn = document.getElementById('toggle-header-btn');
+const headerButtons = document.getElementById('header-buttons');
+const toggleIconUp = document.getElementById('toggle-icon-up');
+const toggleIconDown = document.getElementById('toggle-icon-down');
 
 // State
 let accessToken = null;
@@ -74,6 +78,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === helpModal) {
             helpModal.classList.add('hidden');
         }
+    });
+
+    // ヘッダー折りたたみ
+    toggleHeaderBtn.addEventListener('click', () => {
+        headerButtons.classList.toggle('hidden');
+        toggleIconUp.classList.toggle('hidden');
+        toggleIconDown.classList.toggle('hidden');
     });
 
     // A+ / A- ボタン
@@ -167,6 +178,7 @@ function showLoginUI() {
     fontIncreaseBtn.classList.add('hidden');
     fontDecreaseBtn.classList.add('hidden');
     helpBtn.classList.add('hidden');
+    toggleHeaderBtn.classList.add('hidden');
     currentChannelText.classList.add('hidden');
     updateStatus('未接続', 'red');
 }
@@ -181,6 +193,7 @@ function showAppUI() {
     fontIncreaseBtn.classList.remove('hidden');
     fontDecreaseBtn.classList.remove('hidden');
     helpBtn.classList.remove('hidden');
+    toggleHeaderBtn.classList.remove('hidden');
     updateStatus('接続中...', 'yellow');
     // 接続後は最新コメントが見えるよう一番下へスクロール
     const mainEl = document.getElementById('main-container');
@@ -260,6 +273,39 @@ async function fetchUserData() {
     }
 }
 
+// 現在の配信状態を確認し、新しい配信であれば初コメ履歴をリセットする
+async function checkStreamStatus() {
+    try {
+        const res = await fetch(`https://api.twitch.tv/helix/streams?user_id=${targetBroadcasterId}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Client-Id': clientId
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.data && data.data.length > 0) {
+                const streamId = data.data[0].id;
+                const lastStreamId = localStorage.getItem('last_stream_id');
+                if (streamId !== lastStreamId) {
+                    console.log('New stream detected, clearing seenUsers...');
+                    seenUsers.clear();
+                    localStorage.removeItem('seenUsers');
+                    localStorage.setItem('last_stream_id', streamId);
+                }
+            } else {
+                // オフラインの場合は履歴をリセットして次の配信に備える
+                console.log('Stream offline, cleared seenUsers for next stream...');
+                seenUsers.clear();
+                localStorage.removeItem('seenUsers');
+                localStorage.removeItem('last_stream_id');
+            }
+        }
+    } catch (err) {
+        console.error('Failed to check stream status:', err);
+    }
+}
+
 async function fetchTargetBroadcasterAndConnect() {
     updateStatus('確認中...', 'yellow');
     try {
@@ -284,6 +330,9 @@ async function fetchTargetBroadcasterAndConnect() {
         targetBroadcasterId = data.data[0].id;
         currentChannelText.textContent = `監視先: ${data.data[0].display_name}`;
         currentChannelText.classList.remove('hidden');
+
+        // 配信状態をチェックして初コメリセット判定を行う
+        await checkStreamStatus();
 
         // バッジ画像マップを取得してからWebSocketへ接続
         await fetchBadges();
