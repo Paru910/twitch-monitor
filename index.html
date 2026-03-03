@@ -42,20 +42,23 @@
                     初見コメント・ビッツ・ポイントを<br>スマホでリアルタイム検知
                 </p>
             </div>
-            <div class="text-center w-full max-w-sm px-4 mt-6">
+            <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm shadow-md mt-4">
+                <label for="client-id-input" class="block text-sm font-bold text-gray-300 mb-2">Twitch Client ID
+                    (初回のみ)</label>
+                <input type="text" id="client-id-input" placeholder="Client IDを入力..."
+                    class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 mb-5 transition-colors">
+
                 <button id="login-btn"
-                    class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-5 rounded-xl text-xl shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center gap-3">
-                    <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path
                             d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
                     </svg>
-                    配信アカウントで連携する
+                    Twitchで連携
                 </button>
-                <p class="text-gray-400 mt-5 text-sm leading-relaxed">
+                <p class="text-gray-400 mt-5 text-sm leading-relaxed text-center">
                     ※Twitchの認証画面が表示されます。<br>
-                    <span class="text-yellow-500 text-xs">（テスト環境では「You are about to leave
-                        Twitch...」と警告が出ますが、そのまま進んでください）</span><br>
-                    一度連携すると次回から自動で繋がります。
+                    IDと連携状態はブラウザに保存され、<br>次回から自動で繋がります。
                 </p>
             </div>
         </div>
@@ -99,11 +102,9 @@
         // EventSub用のチャット取得やビッツ取得に必要なスコープ
         const SCOPES = 'user:read:chat bits:read channel:read:redemptions';
 
-        // TODO: ここに取得したTwitch Client IDをハードコーディングしてください
-        const TWITCH_CLIENT_ID = '251rxa5wb1ubyf0j00xzg5qc9b59wy';
-
         // DOM Elements
         const loginBtn = document.getElementById('login-btn');
+        const clientIdInput = document.getElementById('client-id-input');
         const loginSection = document.getElementById('login-section');
         const cardsContainer = document.getElementById('cards-container');
         const statusIndicator = document.getElementById('status-indicator');
@@ -112,11 +113,17 @@
 
         // State
         let accessToken = null;
+        let clientId = null;
         let broadcasterId = null;
         let ws = null;
         let seenUsers = new Set();
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Restore Client ID if exists
+            clientId = localStorage.getItem('twitch_client_id');
+            if (clientId) {
+                clientIdInput.value = clientId;
+            }
 
             // Load seen users from localStorage to persist across reloads
             const storedUsers = localStorage.getItem('seenUsers');
@@ -136,12 +143,14 @@
 
         // --- Authentication ---
         function initiateLogin() {
-            if (TWITCH_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
-                alert('ソースコード内の TWITCH_CLIENT_ID が設定されていません。実装者に確認してください。');
+            const inputId = clientIdInput.value.trim();
+            if (!inputId) {
+                alert('Client IDを入力してください。Twitch Developer Consoleで取得できます。');
                 return;
             }
+            localStorage.setItem('twitch_client_id', inputId);
 
-            const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(SCOPES)}`;
+            const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${inputId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(SCOPES)}`;
             window.location.href = authUrl;
         }
 
@@ -158,7 +167,7 @@
                 accessToken = localStorage.getItem('twitch_access_token');
             }
 
-            if (accessToken) {
+            if (accessToken && clientId) {
                 showAppUI();
                 fetchUserData();
             } else {
@@ -201,16 +210,11 @@
 
         // --- Twitch API Calls ---
         async function fetchUserData() {
-            if (TWITCH_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
-                updateStatus('Client ID未設定', 'red');
-                return;
-            }
-
             try {
                 const res = await fetch('https://api.twitch.tv/helix/users', {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
-                        'Client-Id': TWITCH_CLIENT_ID
+                        'Client-Id': clientId
                     }
                 });
                 if (!res.ok) {
@@ -285,7 +289,7 @@
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${accessToken}`,
-                            'Client-Id': TWITCH_CLIENT_ID,
+                            'Client-Id': clientId,
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
