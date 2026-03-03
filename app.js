@@ -436,15 +436,13 @@ function connectWebSocket() {
 async function subscribeToEvents(sessionId) {
     const types = [
         // チャット取得には、監視先ID(broadcaster_user_id)と読取者自身のID(user_id)が必要
-        { type: 'channel.chat.message', version: '1', condition: { broadcaster_user_id: targetBroadcasterId, user_id: loggedInUserId } }
+        { type: 'channel.chat.message', version: '1', condition: { broadcaster_user_id: targetBroadcasterId, user_id: loggedInUserId } },
+        // サブスクやシステムメッセージを受け取るチャット通知（全チャンネル共通・user:read:chatで取得可能）
+        { type: 'channel.chat.notification', version: '1', condition: { broadcaster_user_id: targetBroadcasterId, user_id: loggedInUserId } }
     ];
 
-    // Twitch API仕様: ビッツ・ポイント・サブスクは「監視対象とログインユーザーが同一」でないと権限エラーになるため、自分のチャンネルの時のみ登録
-    if (targetBroadcasterId === loggedInUserId) {
-        types.push({ type: 'channel.cheer', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
-        types.push({ type: 'channel.channel_points_custom_reward_redemption.add', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
-        types.push({ type: 'channel.subscribe', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
-    }
+    // Twitch API仕様: ビッツ等の専用通知は自分のチャンネルしか取れないため、今後はチャット情報(上記)から取得する仕組みに統一
+    // ※これにより、視聴者として見ているチャンネルでもチャット欄に表示されるものはツール側に反映されます。
     // フォロー通知（モデレーター権限があれば他人のチャンネルでも取得可能）
     types.push({ type: 'channel.follow', version: '2', condition: { broadcaster_user_id: targetBroadcasterId, moderator_user_id: loggedInUserId } });
 
@@ -525,6 +523,43 @@ function handleNotification(payload) {
 
         // (以前は本人のコメントを初見コメントから除外していましたが、設定要望により除外処理を廃止しました)
 
+        // --- ビッツ（Cheer）の判定 ---
+        if (event.cheer && event.cheer.bits > 0) {
+            addCard({
+                type: 'cheer',
+                title: 'Bits',
+                username: chatterName,
+                badges: event.badges,
+                contentHtml: `<span>${event.cheer.bits} Bits 🎉</span> <span class="text-gray-300"> ${messageHtml}</span>`,
+                extra: `${event.cheer.bits} Bits`,
+                colorClass: 'purple'
+            });
+            // 初コメとして扱わないよう記録だけしておく
+            if (!seenUsers.has(chatterId)) {
+                seenUsers.add(chatterId);
+                localStorage.setItem('seenUsers', JSON.stringify(Array.from(seenUsers)));
+            }
+            return;
+        }
+
+        // --- チャンネルポイント（メッセージ付き）の判定 ---
+        if (event.channel_points_custom_reward_id) {
+            addCard({
+                type: 'points',
+                title: 'ポイント',
+                username: chatterName,
+                badges: event.badges,
+                contentHtml: `<span class="text-gray-300">${messageHtml}</span>`,
+                extra: 'ポイント交換', // チャットメッセージからは報酬名が取れないため固定
+                colorClass: 'emerald'
+            });
+            if (!seenUsers.has(chatterId)) {
+                seenUsers.add(chatterId);
+                localStorage.setItem('seenUsers', JSON.stringify(Array.from(seenUsers)));
+            }
+            return;
+        }
+
         const isFirstComment = !seenUsers.has(chatterId);
         if (isFirstComment) {
             // 初回コメント→記録しておく
@@ -552,31 +587,34 @@ function handleNotification(payload) {
                 colorClass: 'gray'
             });
         }
-    } else if (type === 'channel.cheer') {
-        const bits = event.bits;
-        const message = event.message || '';
-        const userName = event.is_anonymous ? 'アノニマス' : (event.user_name || event.user_login);
+    } else if (type === 'channel.chat.notification') {
+        // --- 新機能: チャット通知(サブスク等)を処理 ---
+        const noticeType = event.notice_type;
+        const chatterName = event.chatter_user_name || event.chatter_user_login || 'System';
 
-        addCard({
-            type: 'cheer',
-            title: 'Bits',
-            username: userName,
-            contentHtml: `<span>${bits} Bits 🎉</span> <span class="text-gray-300">${message}</span>`,
-            extra: `${bits} Bits`,
-            colorClass: 'purple'
-        });
-    } else if (type === 'channel.channel_points_custom_reward_redemption.add') {
-        const rewardName = event.reward.title;
-        const userName = event.user_name || event.user_login;
+        if (noticeType === 'sub' || noticeType === 'resub' || noticeType === 'sub_gift') {
+            let tier = 'Prime/Tier 1';
+            let subExtra = '';
 
-        addCard({
-            type: 'points',
-            title: 'ポイント',
-            username: userName,
-            contentHtml: event.user_input ? `<span class="text-gray-300">${event.user_input}</span>` : '',
-            extra: rewardName,
-            colorClass: 'emerald'
-        });
+            if (noticeType === 'sub' && event.sub) {
+                tier = event.sub.sub_tier === '1000' ? 'Tier 1' : event.sub.sub_tier === '2000' ? 'Tier 2' : event.sub.sub_tier === '3000' ? 'Tier 3' : 'Prime';
+            } else if (noticeType === 'resub' && event.resub) {
+                tier = event.resub.sub_tier === '1000' ? 'Tier 1' : event.resub.sub_tier === '2000' ? 'Tier 2' : event.resub.sub_tier === '3000' ? 'Tier 3' : 'Prime';
+                subExtra = `(${event.resub.cumulative_months}ヶ月)`;
+            } else if (noticeType === 'sub_gift' && event.sub_gift) {
+                tier = event.sub_gift.sub_tier === '1000' ? 'Tier 1' : event.sub_gift.sub_tier === '2000' ? 'Tier 2' : event.sub_gift.sub_tier === '3000' ? 'Tier 3' : 'Tier 1';
+                subExtra = `ギフト (${event.sub_gift.recipient_user_name}へ)`;
+            }
+
+            addCard({
+                type: 'subscribe',
+                title: 'サブスク',
+                username: chatterName,
+                contentHtml: `<span>${tier} サブスクライブ！🎉 ${subExtra}</span>`,
+                extra: tier,
+                colorClass: 'pink'
+            });
+        }
     } else if (type === 'channel.raid') {
         // レイド通知: 5分間のレイドウィンドウを開始
         const raiderName = event.from_broadcaster_user_name || event.from_broadcaster_user_login;
