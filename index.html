@@ -397,11 +397,12 @@
             if (type === 'channel.chat.message') {
                 const chatterId = event.chatter_user_id;
                 const chatterName = event.chatter_user_name || event.chatter_user_login;
-                const message = event.message.text;
+                // エモート(スタンプ)を画像に変換してHTMLを生成
+                const messageHtml = buildMessageHtml(event.message);
 
                 // --- 動作確認テスト用コマンド ---
                 // 配信者自身がチャットで「!test」と発言した場合、全カードのテスト表示を行う
-                if (chatterId === targetBroadcasterId && message.trim() === '!test') {
+                if (chatterId === targetBroadcasterId && event.message.text.trim() === '!test') {
                     addCard({ type: 'first_comment', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue' });
                     addCard({ type: 'cheer', title: '【テスト】ビッツ', username: chatterName, content: '応援してます！(テスト)', extra: '500 Bits', colorClass: 'purple' });
                     addCard({ type: 'points', title: '【テスト】チャンネルポイント', username: chatterName, content: '(テストのテキスト入力)', extra: '足つぼマッサージ', colorClass: 'emerald' });
@@ -421,16 +422,16 @@
                         type: 'first_comment',
                         title: '初コメ ⭐',
                         username: chatterName,
-                        content: message,
+                        contentHtml: messageHtml,
                         colorClass: 'blue'
                     });
                 } else {
                     // 2回目以降のコメントも通常カードとして表示する
                     addCard({
                         type: 'chat',
-                        title: 'コメント',
+                        title: '',
                         username: chatterName,
-                        content: message,
+                        contentHtml: messageHtml,
                         colorClass: 'gray'
                     });
                 }
@@ -441,9 +442,9 @@
 
                 addCard({
                     type: 'cheer',
-                    title: 'ビッツ',
+                    title: 'Bits',
                     username: userName,
-                    content: message,
+                    contentHtml: `<span>${bits} Bits 🎉</span> <span class="text-gray-300">${message}</span>`,
                     extra: `${bits} Bits`,
                     colorClass: 'purple'
                 });
@@ -453,13 +454,30 @@
 
                 addCard({
                     type: 'points',
-                    title: 'チャンネルポイント',
+                    title: 'ポイント',
                     username: userName,
-                    content: event.user_input || '',
+                    contentHtml: event.user_input ? `<span class="text-gray-300">${event.user_input}</span>` : '',
                     extra: rewardName,
                     colorClass: 'emerald'
                 });
             }
+        }
+
+        // エモート(スタンプ)を含むメッセージのHTML生成
+        // Twitch EventSub API は message.fragments に各パーツのtypeとemote情報を含める
+        function buildMessageHtml(message) {
+            if (!message || !message.fragments) return '';
+            return message.fragments.map(fragment => {
+                if (fragment.type === 'emote' && fragment.emote) {
+                    const emoteId = fragment.emote.id;
+                    const emoteName = fragment.text || fragment.emote.emote_set_id;
+                    // Twitch CDNのエモート画像URL (1x, 2x, 4xから2xを使用)
+                    const emoteUrl = `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/default/dark/2.0`;
+                    return `<img src="${emoteUrl}" alt="${emoteName}" title="${emoteName}" class="inline-block align-middle" style="height:1.6em;vertical-align:middle;margin:0 2px;">`;
+                }
+                // テキストはそのまま（HTMLエスケープ）
+                return fragment.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }).join('');
         }
 
         // --- UI Card Rendering ---
@@ -467,50 +485,61 @@
             const card = document.createElement('div');
 
             const colorMap = {
-                'blue': { bg: 'bg-blue-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
+                'blue': { bg: 'bg-blue-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: 'text-yellow-300 font-bold', extraBg: '' },
                 'purple': { bg: 'bg-purple-900', border: 'border-purple-500', textTitle: 'text-purple-300', textContent: 'text-gray-100', textExtra: 'text-yellow-400 font-extrabold', extraBg: '' },
-                'emerald': { bg: 'bg-emerald-900', border: 'border-emerald-500', textTitle: 'text-emerald-300', textContent: 'text-gray-100', textExtra: 'text-emerald-100', extraBg: 'bg-emerald-950 p-2 text-center rounded mt-3' },
+                'emerald': { bg: 'bg-emerald-900', border: 'border-emerald-500', textTitle: 'text-emerald-300', textContent: 'text-gray-100', textExtra: 'text-emerald-100', extraBg: 'bg-emerald-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
                 'gray': { bg: 'bg-gray-800', border: 'border-gray-600', textTitle: 'text-gray-400', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
             };
 
             const colors = colorMap[data.colorClass];
+            // コンテンツHTML: data.contentHtml が優先、なければ data.content をテキストとして扱う
+            const messageHtmlContent = data.contentHtml !== undefined
+                ? data.contentHtml
+                : (data.content || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-            card.className = `${colors.bg} border-l-8 ${colors.border} p-5 rounded-lg shadow-lg cursor-pointer transition-all duration-300 flex flex-col`;
+            // カードのベーススタイル（コンパクト化: p-5 → p-3）
+            card.className = `${colors.bg} border-l-4 ${colors.border} p-3 rounded-lg shadow cursor-pointer transition-all duration-300`;
 
-            let extraHTML = '';
-            let contentHTML = '';
+            let html = '';
 
-            if (data.extra || data.type === 'points') {
-                if (data.type === 'cheer') {
-                    extraHTML = `
-                     <div class="${colors.textTitle} text-base font-bold mb-1 flex items-center justify-between">
-                        <span>${data.title}</span>
-                        <span class="${colors.textExtra}">${data.extra}</span>
-                     </div>`;
-                } else if (data.type === 'points') {
-                    extraHTML = `<div class="${colors.textTitle} text-base font-bold mb-1">${data.title}</div>`;
-                    contentHTML = `
-                     <div class="text-3xl font-bold text-white tracking-wide">${data.username}</div>
-                     ${data.content ? `<div class="text-xl mt-3 ${colors.textContent} break-words leading-snug">${data.content}</div>` : ''}
-                     <div class="text-xl font-bold ${colors.textExtra} ${colors.extraBg}">${data.extra}</div>
-                     `;
-                }
+            if (data.type === 'cheer') {
+                // ビッツ: ユーザー名と金額を横並び
+                html = `
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <span class="text-lg font-bold text-white truncate">${data.username}</span>
+                        <span class="${colors.textExtra} text-sm whitespace-nowrap">${data.extra}</span>
+                    </div>
+                    <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
+                `;
+            } else if (data.type === 'points') {
+                // ポイント: 報酬名を目立たせる
+                html = `
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <span class="text-lg font-bold text-white truncate">${data.username}</span>
+                    </div>
+                    <div class="${colors.textExtra} ${colors.extraBg} text-sm font-bold">${data.extra}</div>
+                    ${data.contentHtml ? `<div class="text-sm ${colors.textContent} break-words leading-snug mt-1">${messageHtmlContent}</div>` : ''}
+                `;
+            } else if (data.type === 'first_comment') {
+                // 初コメ: タイトルバッジ付きで目立たせる
+                html = `
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-bold ${colors.textTitle} bg-blue-800 px-2 py-0.5 rounded">${data.title}</span>
+                        <span class="text-lg font-bold text-white truncate">${data.username}</span>
+                    </div>
+                    <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
+                `;
+            } else {
+                // 通常コメント: シンプルに（タイトルなし）
+                html = `
+                    <div class="text-sm font-bold ${colors.textTitle} mb-0.5">${data.username}</div>
+                    <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
+                `;
             }
 
-            if (!extraHTML) {
-                extraHTML = `<div class="${colors.textTitle} text-base font-bold mb-1">${data.title}</div>`;
-            }
+            card.innerHTML = html;
 
-            if (!contentHTML) {
-                contentHTML = `
-                 <div class="text-3xl font-bold text-white tracking-wide">${data.username}</div>
-                 <div class="text-xl mt-3 ${colors.textContent} break-words leading-snug">${data.content}</div>
-                 `;
-            }
-
-            card.innerHTML = extraHTML + contentHTML;
-
-            // Tap to dismiss
+            // タップで消去
             card.addEventListener('click', () => {
                 card.style.opacity = '0';
                 card.style.transform = 'scale(0.95)';
@@ -519,7 +548,7 @@
                 }, 300);
             });
 
-            // Add to top
+            // 一番上に追加
             cardsContainer.insertBefore(card, cardsContainer.firstChild);
         }
 
