@@ -15,15 +15,17 @@
     <!-- ヘッダー / ステータスバー -->
     <header class="sticky top-0 bg-gray-800 p-3 sm:p-4 shadow-md z-10 flex flex-col w-full transition-all duration-300">
         <div class="flex items-center justify-between w-full relative">
-            <div class="flex items-center gap-3">
-                <div id="status-indicator" class="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+            <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 pr-2">
+                <div id="status-indicator"
+                    class="shrink-0 w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]">
                 </div>
-                <span id="status-text" class="text-xl font-bold tracking-wider">未接続</span>
-                <span id="current-channel-text" class="text-sm text-gray-400 ml-2 hidden"></span>
+                <span id="status-text" class="shrink-0 text-lg sm:text-xl font-bold tracking-wider">未接続</span>
+                <span id="current-channel-text"
+                    class="text-xs sm:text-sm text-gray-400 ml-1 sm:ml-2 hidden truncate flex-1 leading-tight border-l border-gray-600 pl-2 sm:pl-3"></span>
             </div>
             <!-- ▼ヘッダー折りたたみボタン -->
             <button id="toggle-header-btn"
-                class="text-gray-400 hover:text-white p-1 rounded hidden transition-colors bg-gray-700">
+                class="shrink-0 text-gray-400 hover:text-white p-1 rounded hidden transition-colors bg-gray-700 ml-1">
                 <!-- 上向き(開いている状態) -->
                 <svg id="toggle-icon-up" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
