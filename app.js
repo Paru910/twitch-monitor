@@ -23,6 +23,7 @@ const toggleHeaderBtn = document.getElementById('toggle-header-btn');
 const headerButtons = document.getElementById('header-buttons');
 const toggleIconUp = document.getElementById('toggle-icon-up');
 const toggleIconDown = document.getElementById('toggle-icon-down');
+const fullscreenBtn = document.getElementById('fullscreen-btn');
 
 // State
 let accessToken = null;
@@ -99,6 +100,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // フルスクリーン切り替え
+    fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) { /* Safari */
+                document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) { /* IE11 */
+                document.documentElement.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { /* IE11 */
+                document.msExitFullscreen();
+            }
+        }
+    });
+
     // スクロール位置で自動スクロールのON/OFFを切り替える
     // 一番下にいるときはON、手動でスクロールアップしたらOFF
     const mainEl = document.getElementById('main-container');
@@ -164,6 +186,7 @@ function showLoginUI() {
     clearLogsBtn.classList.add('hidden');
     logoutBtn.classList.add('hidden');
     changeChannelBtn.classList.add('hidden');
+    fullscreenBtn.classList.add('hidden');
     fontIncreaseBtn.classList.add('hidden');
     fontDecreaseBtn.classList.add('hidden');
     helpBtn.classList.add('hidden');
@@ -179,6 +202,7 @@ function showAppUI() {
     clearLogsBtn.classList.remove('hidden');
     logoutBtn.classList.remove('hidden');
     changeChannelBtn.classList.remove('hidden');
+    fullscreenBtn.classList.remove('hidden');
     fontIncreaseBtn.classList.remove('hidden');
     fontDecreaseBtn.classList.remove('hidden');
     helpBtn.classList.remove('hidden');
