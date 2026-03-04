@@ -24,6 +24,8 @@ const headerButtons = document.getElementById('header-buttons');
 const toggleIconUp = document.getElementById('toggle-icon-up');
 const toggleIconDown = document.getElementById('toggle-icon-down');
 const fullscreenBtn = document.getElementById('fullscreen-btn');
+const fullscreenIconEnter = document.getElementById('fullscreen-icon-enter');
+const fullscreenIconExit = document.getElementById('fullscreen-icon-exit');
 
 // State
 let accessToken = null;
@@ -120,6 +122,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // フルスクリーン状態変更の監視とアイコン切り替え
+    const toggleFullscreenIcons = () => {
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+            fullscreenIconEnter.classList.add('hidden');
+            fullscreenIconExit.classList.remove('hidden');
+        } else {
+            fullscreenIconEnter.classList.remove('hidden');
+            fullscreenIconExit.classList.add('hidden');
+        }
+    };
+    document.addEventListener('fullscreenchange', toggleFullscreenIcons);
+    document.addEventListener('webkitfullscreenchange', toggleFullscreenIcons);
+    document.addEventListener('msfullscreenchange', toggleFullscreenIcons);
 
     // スクロール位置で自動スクロールのON/OFFを切り替える
     // 一番下にいるときはON、手動でスクロールアップしたらOFF
