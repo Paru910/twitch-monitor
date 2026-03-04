@@ -240,8 +240,8 @@ function applyFontSize() {
         document.head.appendChild(styleEl);
     }
     styleEl.textContent = `
-                /* 全体のコメント間の隙間（ベースgap-1 = 0.25rem = 4px） */
-                #cards-container { gap: ${(0.25 * scale).toFixed(3)}rem !important; }
+                /* 全体のコメント間の隙間（ベースgap = 0.0625rem = 1px） */
+                #cards-container { gap: ${(0.0625 * scale).toFixed(4)}rem !important; }
                 /* カード全体に対するパディング（上下2px, 左右8pxをベースに連動） */
                 #cards-container > div { padding: ${(0.125 * scale).toFixed(3)}rem ${(0.5 * scale).toFixed(3)}rem !important; }
                 /* カードのボーダー太さ（ベースborder-l-4 = 4px） */
