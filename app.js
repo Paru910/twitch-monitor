@@ -200,12 +200,22 @@ function applyFontSize() {
         document.head.appendChild(styleEl);
     }
     styleEl.textContent = `
+                /* カード全体に対するパディング（ベースp-3 = 0.75rem） */
+                #cards-container > div { padding: ${(0.75 * scale).toFixed(3)}rem !important; }
+                /* カードのボーダー太さ（ベースborder-l-4 = 4px） */
+                #cards-container .border-l-4 { border-left-width: ${(4 * scale).toFixed(2)}px !important; }
+                /* 各種フォントサイズ */
                 #cards-container .text-xs  { font-size: ${(0.75 * scale).toFixed(3)}rem !important; }
                 #cards-container .text-sm  { font-size: ${(0.875 * scale).toFixed(3)}rem !important; }
                 #cards-container .text-base{ font-size: ${(1.0 * scale).toFixed(3)}rem !important; }
                 #cards-container .text-lg  { font-size: ${(1.125 * scale).toFixed(3)}rem !important; }
                 #cards-container .text-xl  { font-size: ${(1.25 * scale).toFixed(3)}rem !important; }
-                #cards-container img       { height:    ${(1.1 * scale).toFixed(3)}em  !important; }
+                /* マージン・パディング・ギャップの連動 */
+                #cards-container .mb-1     { margin-bottom: ${(0.25 * scale).toFixed(3)}rem !important; }
+                #cards-container .mt-1     { margin-top: ${(0.25 * scale).toFixed(3)}rem !important; }
+                #cards-container .px-2     { padding-left: ${(0.5 * scale).toFixed(3)}rem !important; padding-right: ${(0.5 * scale).toFixed(3)}rem !important; }
+                #cards-container .py-1     { padding-top: ${(0.25 * scale).toFixed(3)}rem !important; padding-bottom: ${(0.25 * scale).toFixed(3)}rem !important; }
+                #cards-container .gap-2    { gap: ${(0.5 * scale).toFixed(3)}rem !important; }
             `;
 }
 
