@@ -240,8 +240,8 @@ function applyFontSize() {
         document.head.appendChild(styleEl);
     }
     styleEl.textContent = `
-                /* カード全体に対するパディング（ベースp-3 = 0.75rem） */
-                #cards-container > div { padding: ${(0.75 * scale).toFixed(3)}rem !important; }
+                /* カード全体に対するパディング（上下2px, 左右8pxをベースに連動） */
+                #cards-container > div { padding: ${(0.125 * scale).toFixed(3)}rem ${(0.5 * scale).toFixed(3)}rem !important; }
                 /* カードのボーダー太さ（ベースborder-l-4 = 4px） */
                 #cards-container .border-l-4 { border-left-width: ${(4 * scale).toFixed(2)}px !important; }
                 /* 各種フォントサイズ */
