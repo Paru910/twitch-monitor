@@ -761,57 +761,63 @@ function addCard(data) {
     // カードのベーススタイル（コンパクト化: p-5 → p-3）
     card.className = `${colors.bg} border-l-4 ${colors.border} p-3 rounded-lg shadow cursor-pointer transition-all duration-300`;
 
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
     let html = '';
 
     if (data.type === 'cheer') {
-        // ビッツ: ユーザー名と金額を横並び
+        // ビッツ: ユーザー名と金額と時刻
         html = `
-                    <div class="flex items-center justify-between gap-2 mb-1">
+                    <div class="flex items-start justify-between gap-2 mb-1">
                         <span class="text-lg font-bold text-white truncate">${badgesHtml}${data.username}</span>
-                        <span class="${colors.textExtra} text-sm whitespace-nowrap">${data.extra}</span>
+                        <div class="flex flex-col items-end whitespace-nowrap">
+                            <span class="${colors.textExtra} text-sm font-bold">${data.extra}</span>
+                            <span class="text-[0.65rem] text-gray-400 mt-0.5">${timeStr}</span>
+                        </div>
                     </div>
                     <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
                 `;
     } else if (data.type === 'points') {
-        // ポイント: 報酬名を目立たせる
+        // ポイント
         html = `
                     <div class="flex items-center justify-between gap-2 mb-1">
                         <span class="text-lg font-bold text-white truncate">${badgesHtml}${data.username}</span>
+                        <span class="text-[0.65rem] text-gray-400 whitespace-nowrap">${timeStr}</span>
                     </div>
                     <div class="${colors.textExtra} ${colors.extraBg} text-sm font-bold">${data.extra}</div>
                     ${data.contentHtml ? `<div class="text-sm ${colors.textContent} break-words leading-snug mt-1">${messageHtmlContent}</div>` : ''}
                 `;
     } else if (data.type === 'first_comment' || data.type === 'raid_comment') {
-        // 初コメ / レイド初コメ: タイトルバッジ付きで目立たせる
+        // 初コメ / レイド初コメ
         const badgeColor = data.type === 'raid_comment' ? 'bg-orange-800' : 'bg-blue-800';
         html = `
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="text-xs font-bold ${colors.textTitle} ${badgeColor} px-2 py-0.5 rounded">${data.title}</span>
-                        <span class="text-lg font-bold text-white truncate">${badgesHtml}${data.username}</span>
+                    <div class="flex items-center justify-between gap-1 mb-1">
+                        <div class="flex items-center gap-1 truncate">
+                            <span class="text-xs font-bold ${colors.textTitle} ${badgeColor} px-1.5 py-0.5 rounded whitespace-nowrap">${data.title}</span>
+                            <span class="text-lg font-bold text-white truncate">${badgesHtml}${data.username}</span>
+                        </div>
+                        <span class="text-[0.65rem] text-gray-400 whitespace-nowrap ml-1">${timeStr}</span>
                     </div>
                     <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
                 `;
-    } else if (data.type === 'raid' || data.type === 'subscribe') {
-        // レイド通知・サブスク通知: 右上に付加情報を表示
+    } else if (data.type === 'raid' || data.type === 'subscribe' || data.type === 'follow') {
+        // レイド通知・サブスク通知・フォロー通知
         html = `
                     <div class="flex items-center justify-between gap-2 mb-1">
                         <span class="text-lg font-bold text-white truncate">${data.username}</span>
+                        <span class="text-[0.65rem] text-gray-400 whitespace-nowrap">${timeStr}</span>
                     </div>
                     ${data.extra ? `<div class="${colors.textExtra} ${colors.extraBg} text-sm font-bold mb-1">${data.extra}</div>` : ''}
                     <div class="text-sm ${colors.textContent} break-words leading-snug mt-1">${messageHtmlContent}</div>
                 `;
-    } else if (data.type === 'follow') {
-        // フォロー通知自体
-        html = `
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                        <span class="text-lg font-bold text-white truncate">${data.username}</span>
-                    </div>
-                    <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
-                `;
     } else {
-        // 通常コメント: シンプルに（タイトルなし）
+        // 通常コメント
         html = `
-                    <div class="text-sm font-bold ${colors.textTitle} mb-0.5">${badgesHtml}${data.username}</div>
+                    <div class="flex items-start justify-between gap-2 mb-0.5">
+                        <span class="text-sm font-bold ${colors.textTitle} truncate">${badgesHtml}${data.username}</span>
+                        <span class="text-[0.65rem] text-gray-500 whitespace-nowrap mt-0.5">${timeStr}</span>
+                    </div>
                     <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
                 `;
     }
