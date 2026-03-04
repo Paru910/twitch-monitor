@@ -1,6 +1,6 @@
 const REDIRECT_URI = window.location.origin + window.location.pathname;
 // EventSub用のチャット取得やビッツ取得に必要なスコープ
-const SCOPES = 'user:read:chat bits:read channel:read:redemptions moderator:read:followers channel:read:subscriptions';
+const SCOPES = 'user:read:chat bits:read channel:read:redemptions moderator:read:followers channel:read:subscriptions user:read:follows';
 
 // DOM Elements
 const loginBtn = document.getElementById('login-btn');
@@ -439,7 +439,7 @@ async function subscribeToEvents(sessionId) {
     if (targetBroadcasterId === loggedInUserId) {
         types.push({ type: 'channel.channel_points_custom_reward_redemption.add', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
     }
-    // フォロー通知（モデレーター権限があれば他人のチャンネルでも取得可能）
+    // フォロー通知（Twitch API v2仕様: 配信者自身、またはモデレーター権限が必要。どちらの場合でもmoderator_user_idにはログインユーザーのIDを指定する）
     types.push({ type: 'channel.follow', version: '2', condition: { broadcaster_user_id: targetBroadcasterId, moderator_user_id: loggedInUserId } });
 
     // レイドは全チャンネル共通・追加スコープ不要
@@ -469,6 +469,10 @@ async function subscribeToEvents(sessionId) {
             if (!res.ok) {
                 const errData = await res.json();
                 console.error(`Failed to subscribe to ${sub.type}:`, errData);
+                // コンソールに詳細なエラー理由を出力（デバッグ用）
+                if (errData.status === 403) {
+                    console.error('権限エラー: 指定されたユーザーにこの操作を行う権限がないか、必要なスコープ（moderator:read:followers等）が不足しています。');
+                }
             } else {
                 console.log(`Subscribed to ${sub.type}`);
             }
