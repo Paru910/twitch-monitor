@@ -435,11 +435,9 @@ async function subscribeToEvents(sessionId) {
         { type: 'channel.chat.notification', version: '1', condition: { broadcaster_user_id: targetBroadcasterId, user_id: loggedInUserId } }
     ];
 
-    // Twitch API仕様: ビッツ等の専用通知は自分のチャンネルしか取れないため、本人の場合は専用Webhookを利用し、別人の場合はチャットから解析するよう併用しています。
+    // Twitch API仕様: チャット情報(chat.messageおよびchat.notification)からビッツやサブスクは網羅可能なため、専用イベントはポイント(文字なし)のみ本人の場合に使用します。
     if (targetBroadcasterId === loggedInUserId) {
-        types.push({ type: 'channel.cheer', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
         types.push({ type: 'channel.channel_points_custom_reward_redemption.add', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
-        types.push({ type: 'channel.subscribe', version: '1', condition: { broadcaster_user_id: targetBroadcasterId } });
     }
     // フォロー通知（モデレーター権限があれば他人のチャンネルでも取得可能）
     types.push({ type: 'channel.follow', version: '2', condition: { broadcaster_user_id: targetBroadcasterId, moderator_user_id: loggedInUserId } });
@@ -505,10 +503,8 @@ function handleNotification(payload) {
 
         // (以前は本人のコメントを初見コメントから除外していましたが、設定要望により除外処理を廃止しました)
 
-        const isBroadcaster = targetBroadcasterId === loggedInUserId;
-
-        // --- ビッツ（Cheer）の判定（チャットベースは他人のチャンネルの場合のみ） ---
-        if (!isBroadcaster && event.cheer && event.cheer.bits > 0) {
+        // --- ビッツ（Cheer）の判定（チャットからすべて取得） ---
+        if (event.cheer && event.cheer.bits > 0) {
             addCard({
                 type: 'cheer',
                 title: 'Bits',
@@ -526,7 +522,8 @@ function handleNotification(payload) {
             return;
         }
 
-        // --- チャンネルポイント（メッセージ付き）の判定（チャットベースは他人のチャンネルの場合のみ） ---
+        // --- チャンネルポイント（メッセージ付き）の判定（専用Webhookと重複するため本人以外のみ） ---
+        const isBroadcaster = targetBroadcasterId === loggedInUserId;
         if (!isBroadcaster && event.channel_points_custom_reward_id) {
             addCard({
                 type: 'points',
@@ -572,10 +569,7 @@ function handleNotification(payload) {
             });
         }
     } else if (type === 'channel.chat.notification') {
-        const isBroadcaster = targetBroadcasterId === loggedInUserId;
-        if (isBroadcaster) return; // 配信者本人の場合は専用Webhook(channel.subscribe)で取得するため重複排除
-
-        // --- 新機能: チャット通知(サブスク等)を他人のチャンネル向けに処理 ---
+        // --- チャット通知(サブスク等)を処理（すべてチャットから取得） ---
         const noticeType = event.notice_type;
         const chatterName = event.chatter_user_name || event.chatter_user_login || 'System';
 
@@ -602,19 +596,6 @@ function handleNotification(payload) {
                 colorClass: 'pink'
             });
         }
-    } else if (type === 'channel.cheer') {
-        const bits = event.bits;
-        const message = event.message || '';
-        const userName = event.is_anonymous ? 'アノニマス' : (event.user_name || event.user_login);
-
-        addCard({
-            type: 'cheer',
-            title: 'Bits',
-            username: userName,
-            contentHtml: `<span>${bits} Bits 🎉</span> <span class="text-gray-300">${message}</span>`,
-            extra: `${bits} Bits`,
-            colorClass: 'purple'
-        });
     } else if (type === 'channel.channel_points_custom_reward_redemption.add') {
         const rewardName = event.reward.title;
         const userName = event.user_name || event.user_login;
