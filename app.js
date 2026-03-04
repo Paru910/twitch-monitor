@@ -26,7 +26,7 @@ const toggleIconDown = document.getElementById('toggle-icon-down');
 
 // State
 let accessToken = null;
-let clientId = null;
+const clientId = "251rxa5wb1ubyf0j00xzg5qc9b59wy";
 let loggedInUserId = null;
 let targetBroadcasterId = null;
 let targetChannelName = '';
@@ -43,12 +43,6 @@ let raidSource = ''; // レイド元のチャンネル名
 let wsReconnectTimeout = null;   // WebSocketの再接続ループ防止用タイマー
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Restore Client ID if exists
-    clientId = localStorage.getItem('twitch_client_id');
-    if (clientId) {
-        clientIdInput.value = clientId;
-    }
-
     // Load seen users from localStorage to persist across reloads
     const storedUsers = localStorage.getItem('seenUsers');
     if (storedUsers) {
@@ -127,15 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Authentication ---
 function initiateLogin() {
-    const inputId = clientIdInput.value.trim();
-    if (!inputId) {
-        alert('Client IDを入力してください。Twitch Developer Consoleで取得できます。');
-        return;
-    }
-    localStorage.setItem('twitch_client_id', inputId);
-
     // force_verify=true を付与して、毎回必ず同意画面（最新のスコープ要求）を表示させる
-    const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${inputId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(SCOPES)}&force_verify=true`;
+    const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(SCOPES)}&force_verify=true`;
     window.location.href = authUrl;
 }
 
