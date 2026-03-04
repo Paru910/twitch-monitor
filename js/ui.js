@@ -114,7 +114,7 @@ export function clearLogs() {
 export function setupUIEventListeners() {
     elements.loginBtn.addEventListener('click', initiateLogin);
     elements.clearLogsBtn.addEventListener('click', clearLogs);
-    // changeChannelBtn logic will be bound to prompt
+    elements.changeChannelBtn.addEventListener('click', changeChannelPrompt);
     elements.logoutBtn.addEventListener('click', logout);
 
     elements.helpBtn.addEventListener('click', () => {
