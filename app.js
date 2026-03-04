@@ -271,9 +271,12 @@ function updateStatus(text, color) {
 }
 
 function logout() {
-    localStorage.removeItem('twitch_access_token');
-    accessToken = null;
-    showLoginUI();
+    if (confirm('ログアウトして連携を解除しますか？')) {
+        localStorage.removeItem('twitch_access_token');
+        accessToken = null;
+        if (ws) ws.close();
+        showLoginUI();
+    }
 }
 
 // --- Twitch API Calls ---
@@ -416,6 +419,15 @@ function buildBadgesHtml(badges) {
         if (!url) return '';
         return `<img src="${url}" alt="${badge.set_id}" title="${badge.set_id}" class="inline-block align-middle" style="height:1.1em;margin-right:3px;vertical-align:middle;">`;
     }).join('');
+}
+
+function clearLogs() {
+    if (confirm('表示されているすべてのコメントを消去しますか？')) {
+        cardsContainer.innerHTML = '';
+        updateStatus('接続中...', 'yellow'); // 便宜上のリセット表示
+        seenUsers.clear();
+        localStorage.removeItem('seenUsers');
+    }
 }
 
 async function changeChannelPrompt() {
@@ -827,5 +839,10 @@ function addCard(data) {
 }
 
 function clearLogs() {
-    cardsContainer.innerHTML = '';
+    if (confirm('表示されているすべてのコメントを消去しますか？')) {
+        cardsContainer.innerHTML = '';
+        updateStatus('接続中...', 'yellow'); // 便宜上のリセット表示
+        seenUsers.clear();
+        localStorage.removeItem('seenUsers');
+    }
 }
