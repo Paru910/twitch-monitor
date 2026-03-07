@@ -94,7 +94,7 @@ export function addCard(data, isRestore = false) {
     }
 
     if (colors.innerBg) {
-        card.innerHTML = `<div class="${colors.innerBg} rounded p-2 m-0.5">${html}</div>`;
+        card.innerHTML = `<div class="${colors.innerBg} rounded p-2 m-1.5 shadow-sm">${html}</div>`;
     } else {
         card.innerHTML = html;
     }
