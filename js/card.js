@@ -10,7 +10,7 @@ export function buildBadgesHtml(badges) {
     }).join('');
 }
 
-export function addCard(data) {
+export function addCard(data, isRestore = false) {
     const card = document.createElement('div');
 
     const colorMap = {
@@ -20,6 +20,8 @@ export function addCard(data) {
         'orange': { bg: 'bg-orange-900', border: 'border-orange-500', textTitle: 'text-orange-300', textContent: 'text-gray-100', textExtra: 'text-orange-100 font-bold', extraBg: 'bg-orange-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
         'cyan': { bg: 'bg-cyan-900', border: 'border-cyan-500', textTitle: 'text-cyan-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
         'pink': { bg: 'bg-pink-900', border: 'border-pink-500', textTitle: 'text-pink-300', textContent: 'text-gray-100', textExtra: 'text-pink-200 font-bold', extraBg: 'bg-pink-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
+        'sub_first': { bg: 'bg-gradient-to-r from-blue-900 via-pink-900 to-pink-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: 'text-pink-200 font-bold', extraBg: 'bg-pink-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
+        'raid_first': { bg: 'bg-gradient-to-r from-blue-900 via-orange-900 to-orange-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
         'gray': { bg: 'bg-gray-800', border: 'border-gray-600', textTitle: 'text-gray-400', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
         'red': { bg: 'bg-red-900', border: 'border-red-500', textTitle: 'text-red-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
     };
@@ -32,8 +34,11 @@ export function addCard(data) {
 
     card.className = `${colors.bg} border-l-4 ${colors.border} p-3 rounded-lg shadow cursor-pointer transition-all duration-300`;
 
-    const now = new Date();
-    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    if (!data.timeStr) {
+        const now = new Date();
+        data.timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    }
+    const timeStr = data.timeStr;
 
     let html = '';
 
@@ -103,6 +108,24 @@ export function addCard(data) {
 
     elements.cardsContainer.appendChild(card);
 
+    if (!isRestore) {
+        state.messageHistory.push(data);
+        if (state.messageHistory.length > 100) {
+            state.messageHistory.shift();
+        }
+        localStorage.setItem('chat_history', JSON.stringify(state.messageHistory));
+    }
+
+    if (state.isAutoScroll) {
+        elements.mainContainer.scrollTop = elements.mainContainer.scrollHeight;
+    }
+}
+
+export function restoreHistory() {
+    elements.cardsContainer.innerHTML = '';
+    state.messageHistory.forEach(data => {
+        addCard(data, true);
+    });
     if (state.isAutoScroll) {
         elements.mainContainer.scrollTop = elements.mainContainer.scrollHeight;
     }

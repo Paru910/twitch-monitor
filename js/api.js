@@ -218,6 +218,11 @@ export async function subscribeToEvents(sessionId) {
                 console.error(`Failed to subscribe to ${sub.type}:`, errData);
                 if (errData.status === 403) {
                     console.error('権限エラー: 指定されたユーザーにこの操作を行う権限がないか、必要なスコープ（moderator:read:followers等）が不足しています。');
+                    updateStatus('権限エラー(再ログイン必須)', 'red');
+                    if (!window.authErrorAlerted) {
+                        alert('【Twitch連携エラー】\n現在の権限が古いため、テキスト無しのチャンネルポイント等を正常に取得できません。\n\nお手数ですが、右下の「ログアウト」ボタンから一度連携を解除し、再度ログインを行ってください。');
+                        window.authErrorAlerted = true;
+                    }
                 }
             } else {
                 console.log(`Subscribed to ${sub.type}`);
@@ -252,7 +257,8 @@ export function handleNotification(payload) {
 
         if (chatterId === state.loggedInUserId && event.message.text.trim() === '!test') {
             addCard({ type: 'first_comment', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue' });
-            addCard({ type: 'raid_comment', title: 'レイド テストchから', username: chatterName, content: 'レイドから来ました(テスト)', colorClass: 'orange' });
+            addCard({ type: 'subscribe', title: '初コメ ⭐ サブスク', username: '複合色テストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 </span><br><span class="text-gray-300 mt-1 block">複合カラー（青×ピンク）のテストです！</span>', extra: 'Tier 1', colorClass: 'sub_first' });
+            addCard({ type: 'raid_comment', title: 'レイド 🚨 テストchから', username: chatterName, content: 'レイドの複合色（青×オレンジ）テスト', colorClass: 'raid_first' });
             addCard({ type: 'cheer', title: '【テスト】ビッツ', username: chatterName, content: '応援してます！(テスト)', extra: '500 Bits', colorClass: 'purple' });
             addCard({ type: 'points', title: '【テスト】チャンネルポイント', username: chatterName, content: '(テストのテキスト入力)', extra: '足つぼマッサージ', colorClass: 'emerald' });
             addCard({ type: 'raid', title: 'レイド!', username: 'テストチャンネル', contentHtml: '<span>テスト用レイド通知</span>', extra: '50人', colorClass: 'orange' });
@@ -308,7 +314,7 @@ export function handleNotification(payload) {
                 username: chatterName,
                 badges: event.badges,
                 contentHtml: messageHtml,
-                colorClass: isRaider ? 'orange' : 'blue'
+                colorClass: isRaider ? 'raid_first' : 'blue'
             });
         } else {
             addCard({
@@ -328,23 +334,54 @@ export function handleNotification(payload) {
             let tier = 'Prime/Tier 1';
             let subExtra = '';
 
+            let customMessageHtml = '';
+
             if (noticeType === 'sub' && event.sub) {
                 tier = event.sub.sub_tier === '1000' ? 'Tier 1' : event.sub.sub_tier === '2000' ? 'Tier 2' : event.sub.sub_tier === '3000' ? 'Tier 3' : 'Prime';
+                // (Very rare but possible according to docs) First time sub custom message
+                if (event.sub.sub_message && event.sub.sub_message.fragments) {
+                    customMessageHtml = buildMessageHtml(event.sub.sub_message);
+                } else if (event.message && event.message.fragments) { // Fallback
+                    customMessageHtml = buildMessageHtml(event.message);
+                }
             } else if (noticeType === 'resub' && event.resub) {
                 tier = event.resub.sub_tier === '1000' ? 'Tier 1' : event.resub.sub_tier === '2000' ? 'Tier 2' : event.resub.sub_tier === '3000' ? 'Tier 3' : 'Prime';
                 subExtra = `(${event.resub.cumulative_months}ヶ月)`;
+                // Resub standard location for custom messages
+                if (event.resub.resub_message && event.resub.resub_message.fragments) {
+                    customMessageHtml = buildMessageHtml(event.resub.resub_message);
+                } else if (event.message && event.message.fragments) { // Fallback
+                    customMessageHtml = buildMessageHtml(event.message);
+                }
             } else if (noticeType === 'sub_gift' && event.sub_gift) {
                 tier = event.sub_gift.sub_tier === '1000' ? 'Tier 1' : event.sub_gift.sub_tier === '2000' ? 'Tier 2' : event.sub_gift.sub_tier === '3000' ? 'Tier 3' : 'Tier 1';
                 subExtra = `ギフト (${event.sub_gift.recipient_user_name}へ)`;
+                // Gift subs rarely have a custom message for the event itself, but just in case
+                if (event.message && event.message.fragments) {
+                    customMessageHtml = buildMessageHtml(event.message);
+                }
+            }
+
+            let messageHtmlContent = `<span>${tier} サブスクライブ！🎉 ${subExtra}</span>`;
+            if (customMessageHtml) {
+                messageHtmlContent += `<br><span class="text-gray-300 mt-1 block">${customMessageHtml}</span>`;
+            }
+
+            const chatterId = event.chatter_user_id || event.target_user_id; // target_user_id handling for some API payload variations
+            let isFirstComment = false;
+            if (chatterId && !state.seenUsers.has(chatterId)) {
+                isFirstComment = true;
+                state.seenUsers.add(chatterId);
+                localStorage.setItem('seenUsers', JSON.stringify(Array.from(state.seenUsers)));
             }
 
             addCard({
-                type: 'subscribe',
-                title: 'サブスク',
+                type: isFirstComment ? 'first_comment' : 'subscribe',
+                title: isFirstComment ? '初コメ ⭐ サブスク' : 'サブスク',
                 username: chatterName,
-                contentHtml: `<span>${tier} サブスクライブ！🎉 ${subExtra}</span>`,
+                contentHtml: messageHtmlContent,
                 extra: tier,
-                colorClass: 'pink'
+                colorClass: isFirstComment ? 'sub_first' : 'pink'
             });
         }
     } else if (type === 'channel.channel_points_custom_reward_redemption.add') {

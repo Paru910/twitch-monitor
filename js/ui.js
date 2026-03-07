@@ -108,6 +108,8 @@ export function clearLogs() {
         updateStatus('接続中...', 'yellow');
         state.seenUsers.clear();
         localStorage.removeItem('seenUsers');
+        state.messageHistory = [];
+        localStorage.removeItem('chat_history');
     }
 }
 
