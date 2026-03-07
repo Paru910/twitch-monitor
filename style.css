@@ -1,5 +1,21 @@
 body {
     font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-    /* ƒ^ƒbƒv‚ÌƒnƒCƒ‰ƒCƒg‚ğ–³Œø‰»i“Æ©À‘•‚ğg—pj */
+    /* ã‚¿ãƒƒãƒ—æ™‚ã®ãƒã‚¤ãƒ©ã‚¤ãƒˆã‚’ç„¡åŠ¹åŒ–ï¼ˆç‹¬è‡ªå®Ÿè£…ã‚’ä½¿ç”¨ï¼‰ */
     -webkit-tap-highlight-color: transparent;
+}
+
+.name-shadow-default {
+    text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.name-shadow-thick {
+    text-shadow:
+        -1px -1px 0 #000, 1px -1px 0 #000,
+        -1px 1px 0 #000, 1px 1px 0 #000,
+        0px -1px 0 #000, 0px 1px 0 #000,
+        -1px 0px 0 #000, 1px 0px 0 #000,
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px 2px 0 #000, 2px 2px 0 #000,
+        0px -2px 0 #000, 0px 2px 0 #000,
+        -2px 0px 0 #000, 2px 0px 0 #000;
 }
