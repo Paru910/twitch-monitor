@@ -6,16 +6,15 @@ body {
 
 .name-outline {
     text-shadow:
-        /* Inner White */
-        -1px -1px 0 #fff,
-        1px -1px 0 #fff,
-        -1px 1px 0 #fff,
-        1px 1px 0 #fff,
-        0px -1px 0 #fff,
-        0px 1px 0 #fff,
-        -1px 0px 0 #fff,
-        1px 0px 0 #fff,
-        /* Outer Black */
+        /* Thick Black Outline */
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0px -1px 0 #000,
+        0px 1px 0 #000,
+        -1px 0px 0 #000,
+        1px 0px 0 #000,
         -2px -2px 0 #000,
         2px -2px 0 #000,
         -2px 2px 0 #000,
