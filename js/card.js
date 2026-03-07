@@ -20,8 +20,8 @@ export function addCard(data, isRestore = false) {
         'orange': { bg: 'bg-orange-900', innerBg: '', border: 'border-orange-500', textTitle: 'text-orange-300', textContent: 'text-gray-100', textExtra: 'text-orange-100 font-bold', extraBg: 'bg-orange-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
         'cyan': { bg: 'bg-cyan-900', innerBg: '', border: 'border-cyan-500', textTitle: 'text-cyan-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
         'pink': { bg: 'bg-pink-900', innerBg: '', border: 'border-pink-500', textTitle: 'text-pink-300', textContent: 'text-gray-100', textExtra: 'text-pink-200 font-bold', extraBg: 'bg-pink-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
-        'sub_first': { bg: 'bg-cyan-900', innerBg: 'bg-pink-900', border: 'border-cyan-500', textTitle: 'text-cyan-300', textContent: 'text-gray-100', textExtra: 'text-pink-200 font-bold', extraBg: 'bg-pink-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
-        'raid_first': { bg: 'bg-cyan-900', innerBg: 'bg-orange-900', border: 'border-cyan-500', textTitle: 'text-cyan-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
+        'sub_first': { bg: 'bg-blue-900', innerBg: 'bg-pink-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: 'text-pink-200 font-bold', extraBg: 'bg-pink-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
+        'raid_first': { bg: 'bg-blue-900', innerBg: 'bg-orange-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
         'gray': { bg: 'bg-gray-800', innerBg: '', border: 'border-gray-600', textTitle: 'text-gray-400', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
         'red': { bg: 'bg-red-900', innerBg: '', border: 'border-red-500', textTitle: 'text-red-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
     };
