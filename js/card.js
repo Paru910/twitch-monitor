@@ -14,16 +14,16 @@ export function addCard(data, isRestore = false) {
     const card = document.createElement('div');
 
     const colorMap = {
-        'blue': { bg: 'bg-blue-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
-        'purple': { bg: 'bg-purple-900', border: 'border-purple-500', textTitle: 'text-purple-300', textContent: 'text-gray-100', textExtra: 'text-yellow-400 font-extrabold', extraBg: '' },
-        'emerald': { bg: 'bg-emerald-900', border: 'border-emerald-500', textTitle: 'text-emerald-300', textContent: 'text-gray-100', textExtra: 'text-emerald-100', extraBg: 'bg-emerald-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
-        'orange': { bg: 'bg-orange-900', border: 'border-orange-500', textTitle: 'text-orange-300', textContent: 'text-gray-100', textExtra: 'text-orange-100 font-bold', extraBg: 'bg-orange-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
-        'cyan': { bg: 'bg-cyan-900', border: 'border-cyan-500', textTitle: 'text-cyan-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
-        'pink': { bg: 'bg-pink-900', border: 'border-pink-500', textTitle: 'text-pink-300', textContent: 'text-gray-100', textExtra: 'text-pink-200 font-bold', extraBg: 'bg-pink-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
-        'sub_first': { bg: 'bg-gradient-to-r from-cyan-900 from-50% to-pink-900 to-50%', border: 'border-cyan-500', textTitle: 'text-cyan-300', textContent: 'text-gray-100', textExtra: 'text-pink-200 font-bold', extraBg: 'bg-pink-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
-        'raid_first': { bg: 'bg-gradient-to-r from-cyan-900 from-50% to-orange-900 to-50%', border: 'border-cyan-500', textTitle: 'text-cyan-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
-        'gray': { bg: 'bg-gray-800', border: 'border-gray-600', textTitle: 'text-gray-400', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
-        'red': { bg: 'bg-red-900', border: 'border-red-500', textTitle: 'text-red-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
+        'blue': { bg: 'bg-blue-900', innerBg: '', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
+        'purple': { bg: 'bg-purple-900', innerBg: '', border: 'border-purple-500', textTitle: 'text-purple-300', textContent: 'text-gray-100', textExtra: 'text-yellow-400 font-extrabold', extraBg: '' },
+        'emerald': { bg: 'bg-emerald-900', innerBg: '', border: 'border-emerald-500', textTitle: 'text-emerald-300', textContent: 'text-gray-100', textExtra: 'text-emerald-100', extraBg: 'bg-emerald-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
+        'orange': { bg: 'bg-orange-900', innerBg: '', border: 'border-orange-500', textTitle: 'text-orange-300', textContent: 'text-gray-100', textExtra: 'text-orange-100 font-bold', extraBg: 'bg-orange-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
+        'cyan': { bg: 'bg-cyan-900', innerBg: '', border: 'border-cyan-500', textTitle: 'text-cyan-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
+        'pink': { bg: 'bg-pink-900', innerBg: '', border: 'border-pink-500', textTitle: 'text-pink-300', textContent: 'text-gray-100', textExtra: 'text-pink-200 font-bold', extraBg: 'bg-pink-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
+        'sub_first': { bg: 'bg-cyan-900', innerBg: 'bg-pink-900', border: 'border-cyan-500', textTitle: 'text-cyan-300', textContent: 'text-gray-100', textExtra: 'text-pink-200 font-bold', extraBg: 'bg-pink-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
+        'raid_first': { bg: 'bg-cyan-900', innerBg: 'bg-orange-900', border: 'border-cyan-500', textTitle: 'text-cyan-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
+        'gray': { bg: 'bg-gray-800', innerBg: '', border: 'border-gray-600', textTitle: 'text-gray-400', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
+        'red': { bg: 'bg-red-900', innerBg: '', border: 'border-red-500', textTitle: 'text-red-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
     };
 
     const colors = colorMap[data.colorClass];
@@ -93,7 +93,11 @@ export function addCard(data, isRestore = false) {
                 `;
     }
 
-    card.innerHTML = html;
+    if (colors.innerBg) {
+        card.innerHTML = `<div class="${colors.innerBg} rounded p-2 m-0.5">${html}</div>`;
+    } else {
+        card.innerHTML = html;
+    }
 
     card.addEventListener('click', () => {
         const isRead = card.classList.toggle('is-read');
