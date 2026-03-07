@@ -1,5 +1,27 @@
 body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-            /* タップ時のハイライトを無効化（独自実装を使用） */
-            -webkit-tap-highlight-color: transparent;
-        }
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+    /* タップ時のハイライトを無効化（独自実装を使用） */
+    -webkit-tap-highlight-color: transparent;
+}
+
+.name-outline {
+    text-shadow:
+        /* Inner White */
+        -1px -1px 0 #fff,
+        1px -1px 0 #fff,
+        -1px 1px 0 #fff,
+        1px 1px 0 #fff,
+        0px -1px 0 #fff,
+        0px 1px 0 #fff,
+        -1px 0px 0 #fff,
+        1px 0px 0 #fff,
+        /* Outer Black */
+        -2px -2px 0 #000,
+        2px -2px 0 #000,
+        -2px 2px 0 #000,
+        2px 2px 0 #000,
+        0px -2px 0 #000,
+        0px 2px 0 #000,
+        -2px 0px 0 #000,
+        2px 0px 0 #000;
+}
