@@ -246,6 +246,32 @@ export function buildMessageHtml(message) {
     }).join('');
 }
 
+// Function to adjust color brightness if it's too dark
+function adjustColorBrightness(hex) {
+    if (!hex) return '';
+    hex = String(hex).replace(/[^0-9a-f]/gi, '');
+    if (hex.length < 6) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+
+    let r = parseInt(hex.substring(0, 2), 16);
+    let g = parseInt(hex.substring(2, 4), 16);
+    let b = parseInt(hex.substring(4, 6), 16);
+
+    // Calculate perceived luminance
+    let luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    // Lighten the color if it is too dark (less than 0.35 luminance)
+    if (luminance < 0.35) {
+        const factor = 1.8;
+        r = Math.min(255, Math.floor(r * factor + 50));
+        g = Math.min(255, Math.floor(g * factor + 50));
+        b = Math.min(255, Math.floor(b * factor + 50));
+    }
+
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 export function handleNotification(payload) {
     const type = payload.subscription.type;
     const event = payload.event;
@@ -253,18 +279,18 @@ export function handleNotification(payload) {
     if (type === 'channel.chat.message') {
         const chatterId = event.chatter_user_id;
         const chatterName = event.chatter_user_name || event.chatter_user_login;
-        const userColor = event.color || '';
+        const userColor = adjustColorBrightness(event.color);
         const messageHtml = buildMessageHtml(event.message);
 
         if (chatterId === state.loggedInUserId && event.message.text.trim() === '!test') {
-            addCard({ type: 'first_comment', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue', userColor: '#1E90FF' });
-            addCard({ type: 'subscribe', title: '初コメ ⭐ サブスク', username: '複合色テストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 </span><br><span class="text-gray-300 mt-1 block">複合カラー（外側水色、内側ピンク）のテストです！</span>', extra: 'Tier 1', colorClass: 'sub_first', userColor: '#FF69B4' });
-            addCard({ type: 'raid_comment', title: 'レイド 🚨 テストchから', username: chatterName, content: 'レイドの二重構造（水色・オレンジ）テスト', colorClass: 'raid_first', userColor: '#FF4500' });
+            addCard({ type: 'first_comment', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue', userColor: adjustColorBrightness('#000000') }); // Test black color conversion
+            addCard({ type: 'subscribe', title: '初コメ ⭐ サブスク', username: '複合色テストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 </span><br><span class="text-gray-300 mt-1 block">複合カラー（外側青色、内側ピンク）のテストです！</span>', extra: 'Tier 1', colorClass: 'sub_first', userColor: adjustColorBrightness('#FF69B4') });
+            addCard({ type: 'raid_comment', title: 'レイド 🚨 テストchから', username: chatterName, content: 'レイドの二重構造（青色・オレンジ）テスト', colorClass: 'raid_first', userColor: adjustColorBrightness('#00008B') }); // Test dark blue color conversion
             addCard({ type: 'cheer', title: '【テスト】ビッツ', username: chatterName, content: '応援してます！(テスト)', extra: '500 Bits', colorClass: 'purple', userColor });
             addCard({ type: 'points', title: '【テスト】チャンネルポイント', username: chatterName, content: '(テストのテキスト入力)', extra: '足つぼマッサージ', colorClass: 'emerald', userColor });
             addCard({ type: 'raid', title: 'レイド!', username: 'テストチャンネル', contentHtml: '<span>テスト用レイド通知</span>', extra: '50人', colorClass: 'orange' });
             addCard({ type: 'follow', title: 'フォロー', username: 'テストフォロワー', contentHtml: '<span>チャンネルをフォローしました！</span>', colorClass: 'cyan' });
-            addCard({ type: 'subscribe', title: 'サブスク', username: 'テストサブスクライバー', contentHtml: '<span>ティア1 サブスクライブ！🎉</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FF1493' });
+            addCard({ type: 'subscribe', title: 'サブスク', username: 'テストサブスクライバー', contentHtml: '<span>ティア1 サブスクライブ！🎉</span>', extra: 'Tier 1', colorClass: 'pink', userColor: adjustColorBrightness('#FF1493') });
             return;
         }
 
@@ -334,7 +360,7 @@ export function handleNotification(payload) {
     } else if (type === 'channel.chat.notification') {
         const noticeType = event.notice_type;
         const chatterName = event.chatter_user_name || event.chatter_user_login || 'System';
-        const userColor = event.color || '';
+        const userColor = adjustColorBrightness(event.color);
 
         if (noticeType === 'sub' || noticeType === 'resub' || noticeType === 'sub_gift') {
             let tier = 'Prime/Tier 1';
