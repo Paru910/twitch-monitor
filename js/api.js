@@ -253,17 +253,18 @@ export function handleNotification(payload) {
     if (type === 'channel.chat.message') {
         const chatterId = event.chatter_user_id;
         const chatterName = event.chatter_user_name || event.chatter_user_login;
+        const userColor = event.color || '';
         const messageHtml = buildMessageHtml(event.message);
 
         if (chatterId === state.loggedInUserId && event.message.text.trim() === '!test') {
-            addCard({ type: 'first_comment', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue' });
-            addCard({ type: 'subscribe', title: '初コメ ⭐ サブスク', username: '複合色テストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 </span><br><span class="text-gray-300 mt-1 block">複合カラー（青×ピンク）のテストです！</span>', extra: 'Tier 1', colorClass: 'sub_first' });
-            addCard({ type: 'raid_comment', title: 'レイド 🚨 テストchから', username: chatterName, content: 'レイドの複合色（青×オレンジ）テスト', colorClass: 'raid_first' });
-            addCard({ type: 'cheer', title: '【テスト】ビッツ', username: chatterName, content: '応援してます！(テスト)', extra: '500 Bits', colorClass: 'purple' });
-            addCard({ type: 'points', title: '【テスト】チャンネルポイント', username: chatterName, content: '(テストのテキスト入力)', extra: '足つぼマッサージ', colorClass: 'emerald' });
+            addCard({ type: 'first_comment', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue', userColor: '#1E90FF' });
+            addCard({ type: 'subscribe', title: '初コメ ⭐ サブスク', username: '複合色テストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 </span><br><span class="text-gray-300 mt-1 block">複合カラー（外側水色、内側ピンク）のテストです！</span>', extra: 'Tier 1', colorClass: 'sub_first', userColor: '#FF69B4' });
+            addCard({ type: 'raid_comment', title: 'レイド 🚨 テストchから', username: chatterName, content: 'レイドの二重構造（水色・オレンジ）テスト', colorClass: 'raid_first', userColor: '#FF4500' });
+            addCard({ type: 'cheer', title: '【テスト】ビッツ', username: chatterName, content: '応援してます！(テスト)', extra: '500 Bits', colorClass: 'purple', userColor });
+            addCard({ type: 'points', title: '【テスト】チャンネルポイント', username: chatterName, content: '(テストのテキスト入力)', extra: '足つぼマッサージ', colorClass: 'emerald', userColor });
             addCard({ type: 'raid', title: 'レイド!', username: 'テストチャンネル', contentHtml: '<span>テスト用レイド通知</span>', extra: '50人', colorClass: 'orange' });
             addCard({ type: 'follow', title: 'フォロー', username: 'テストフォロワー', contentHtml: '<span>チャンネルをフォローしました！</span>', colorClass: 'cyan' });
-            addCard({ type: 'subscribe', title: 'サブスク', username: 'テストサブスクライバー', contentHtml: '<span>ティア1 サブスクライブ！🎉</span>', extra: 'Tier 1', colorClass: 'pink' });
+            addCard({ type: 'subscribe', title: 'サブスク', username: 'テストサブスクライバー', contentHtml: '<span>ティア1 サブスクライブ！🎉</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FF1493' });
             return;
         }
 
@@ -275,7 +276,8 @@ export function handleNotification(payload) {
                 badges: event.badges,
                 contentHtml: `<span>${event.cheer.bits} Bits 🎉</span> <span class="text-gray-300"> ${messageHtml}</span>`,
                 extra: `${event.cheer.bits} Bits`,
-                colorClass: 'purple'
+                colorClass: 'purple',
+                userColor: userColor
             });
             if (!state.seenUsers.has(chatterId)) {
                 state.seenUsers.add(chatterId);
@@ -293,7 +295,8 @@ export function handleNotification(payload) {
                 badges: event.badges,
                 contentHtml: `<span class="text-gray-300">${messageHtml}</span>`,
                 extra: 'ポイント交換',
-                colorClass: 'emerald'
+                colorClass: 'emerald',
+                userColor: userColor
             });
             if (!state.seenUsers.has(chatterId)) {
                 state.seenUsers.add(chatterId);
@@ -314,7 +317,8 @@ export function handleNotification(payload) {
                 username: chatterName,
                 badges: event.badges,
                 contentHtml: messageHtml,
-                colorClass: isRaider ? 'raid_first' : 'blue'
+                colorClass: isRaider ? 'raid_first' : 'blue',
+                userColor: userColor
             });
         } else {
             addCard({
@@ -323,12 +327,14 @@ export function handleNotification(payload) {
                 username: chatterName,
                 badges: event.badges,
                 contentHtml: messageHtml,
-                colorClass: 'gray'
+                colorClass: 'gray',
+                userColor: userColor
             });
         }
     } else if (type === 'channel.chat.notification') {
         const noticeType = event.notice_type;
         const chatterName = event.chatter_user_name || event.chatter_user_login || 'System';
+        const userColor = event.color || '';
 
         if (noticeType === 'sub' || noticeType === 'resub' || noticeType === 'sub_gift') {
             let tier = 'Prime/Tier 1';
@@ -381,7 +387,8 @@ export function handleNotification(payload) {
                 username: chatterName,
                 contentHtml: messageHtmlContent,
                 extra: tier,
-                colorClass: isFirstComment ? 'sub_first' : 'pink'
+                colorClass: isFirstComment ? 'sub_first' : 'pink',
+                userColor: userColor
             });
         }
     } else if (type === 'channel.channel_points_custom_reward_redemption.add') {
