@@ -177,9 +177,46 @@ export function addCard(data, isRestore = false) {
         card.innerHTML = html;
     }
 
-    card.addEventListener('click', () => {
-        togglePin(card, data, colors);
-    });
+    let pressTimer;
+    let isLongPress = false;
+
+    const startPress = (e) => {
+        isLongPress = false;
+        pressTimer = setTimeout(() => {
+            isLongPress = true;
+            togglePin(card, data, colors);
+        }, 500); // 500msで長押し判定
+    };
+
+    const cancelPress = () => {
+        clearTimeout(pressTimer);
+    };
+
+    const handleTap = (e) => {
+        if (isLongPress) {
+            e.preventDefault();
+            return; // 長押しの場合は通常のクリック処理（既読化）を行わない
+        }
+        const isRead = card.classList.toggle('is-read');
+        if (isRead) {
+            card.classList.remove(colors.border);
+            card.classList.add('border-gray-600', 'opacity-50');
+        } else {
+            card.classList.remove('border-gray-600', 'opacity-50');
+            card.classList.add(colors.border);
+        }
+    };
+
+    card.addEventListener('mousedown', startPress);
+    card.addEventListener('touchstart', startPress, { passive: true });
+
+    card.addEventListener('mouseup', cancelPress);
+    card.addEventListener('mouseleave', cancelPress);
+    card.addEventListener('touchend', cancelPress);
+    card.addEventListener('touchcancel', cancelPress);
+    card.addEventListener('touchmove', cancelPress, { passive: true });
+
+    card.addEventListener('click', handleTap);
 
     elements.cardsContainer.appendChild(card);
 
