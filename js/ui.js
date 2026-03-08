@@ -79,6 +79,7 @@ export function showAppUI() {
     const filterEnabled = localStorage.getItem('filterTabsEnabled') !== 'false';
     elements.filterTabs.classList.toggle('hidden', !filterEnabled);
     updateFilterBtnStyle(filterEnabled);
+    updatePinnedPosition(filterEnabled);
     updateStatus('接続中...', 'yellow');
 
     setTimeout(() => { elements.mainContainer.scrollTop = elements.mainContainer.scrollHeight; }, 50);
@@ -136,6 +137,18 @@ function updateFilterBtnStyle(enabled) {
     }
 }
 
+// タブの表示有無に応じてピン留めコンテナの上部位置を切り替える
+function updatePinnedPosition(tabsVisible) {
+    if (tabsVisible) {
+        // タブが表示されている場合はタブの高さ分だけ下にずらす
+        elements.pinnedContainer.classList.remove('top-0');
+        elements.pinnedContainer.classList.add('top-[2.75rem]');
+    } else {
+        elements.pinnedContainer.classList.remove('top-[2.75rem]');
+        elements.pinnedContainer.classList.add('top-0');
+    }
+}
+
 export function setupUIEventListeners() {
     elements.filterTabButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -159,6 +172,7 @@ export function setupUIEventListeners() {
         elements.filterTabs.classList.toggle('hidden', isVisible);
         localStorage.setItem('filterTabsEnabled', String(!isVisible));
         updateFilterBtnStyle(!isVisible);
+        updatePinnedPosition(!isVisible);
         // タブを非表示にしたときは「すべて」フィルタにリセット
         if (isVisible) {
             state.currentFilter = 'all';
