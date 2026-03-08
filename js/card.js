@@ -37,7 +37,9 @@ export function addCard(data, isRestore = false) {
         'sub_first': { bg: 'bg-blue-900', innerBg: 'bg-pink-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: 'text-pink-200 font-bold', extraBg: 'bg-pink-950 px-2 py-1 rounded mt-1 inline-block text-sm' },
         'raid_first': { bg: 'bg-blue-900', innerBg: 'bg-orange-900', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
         'gray': { bg: 'bg-gray-800', innerBg: '', border: 'border-gray-600', textTitle: 'text-gray-400', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
-        'red': { bg: 'bg-red-900', innerBg: '', border: 'border-red-500', textTitle: 'text-red-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
+        'red': { bg: 'bg-red-900', innerBg: '', border: 'border-red-500', textTitle: 'text-red-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
+        // アナウンスメント用（配信者の重要告知を目立たせる）
+        'announcement': { bg: 'bg-yellow-900', innerBg: '', border: 'border-yellow-500', textTitle: 'text-yellow-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
     };
 
     const colors = colorMap[data.colorClass];
@@ -56,6 +58,23 @@ export function addCard(data, isRestore = false) {
 
     let html = '';
 
+    // リプライ（返信先）情報のHTMLを生成（存在する場合のみ表示）
+    let replyHtml = '';
+    if (data.reply && data.reply.parent_user_name) {
+        const parentBody = (data.reply.parent_message_body || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        replyHtml = `<div class="reply-indicator"><span class="reply-arrow">↩</span> <span class="reply-username">@${data.reply.parent_user_name}</span> <span class="reply-body">${parentBody}</span></div>`;
+    }
+
+    // message_typeに応じたラベルバッジHTMLを生成
+    let messageTypeLabel = '';
+    if (data.messageType === 'channel_points_highlighted') {
+        messageTypeLabel = '<span class="msg-type-badge msg-type-highlight">✨ ハイライト</span>';
+    } else if (data.messageType === 'user_intro') {
+        messageTypeLabel = '<span class="msg-type-badge msg-type-intro">👋 自己紹介</span>';
+    } else if (data.messageType === 'channel_points_sub_only') {
+        messageTypeLabel = '<span class="msg-type-badge msg-type-subonly">⭐ サブ限定</span>';
+    }
+
     const nameColorStyle = data.userColor ? `style="color: ${data.userColor};"` : '';
     let nameShadowClass = '';
     if (data.userColor) {
@@ -64,7 +83,19 @@ export function addCard(data, isRestore = false) {
     const whiteTextClass = data.userColor ? '' : 'text-white';
     const titleTextClass = data.userColor ? '' : colors.textTitle;
 
-    if (data.type === 'cheer') {
+    if (data.type === 'announcement') {
+        // アナウンスメント専用テンプレート
+        html = `
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <div class="flex items-center gap-1 truncate">
+                            <span class="text-xs font-bold ${colors.textTitle} bg-yellow-800 px-1.5 py-0.5 rounded whitespace-nowrap">${data.title}</span>
+                            <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${badgesHtml}${data.username}</span>
+                        </div>
+                        <span class="text-[0.65rem] text-gray-400 whitespace-nowrap ml-1">${timeStr}</span>
+                    </div>
+                    <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
+                `;
+    } else if (data.type === 'cheer') {
         html = `
                     <div class="flex items-start justify-between gap-2 mb-1">
                         <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${badgesHtml}${data.username}</span>
@@ -94,6 +125,8 @@ export function addCard(data, isRestore = false) {
                         </div>
                         <span class="text-[0.65rem] text-gray-400 whitespace-nowrap ml-1">${timeStr}</span>
                     </div>
+                    ${replyHtml}
+                    ${messageTypeLabel}
                     <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
                 `;
     } else if (data.type === 'raid' || data.type === 'subscribe' || data.type === 'follow') {
@@ -111,6 +144,8 @@ export function addCard(data, isRestore = false) {
                         <span class="text-sm font-bold ${titleTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${badgesHtml}${data.username}</span>
                         <span class="text-[0.65rem] text-gray-500 whitespace-nowrap mt-0.5">${timeStr}</span>
                     </div>
+                    ${replyHtml}
+                    ${messageTypeLabel}
                     <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
                 `;
     }

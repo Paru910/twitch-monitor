@@ -242,6 +242,11 @@ export function buildMessageHtml(message) {
             const emoteUrl = `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/default/dark/2.0`;
             return `<img src="${emoteUrl}" alt="${emoteName}" title="${emoteName}" class="inline-block align-middle" style="height:1.6em;vertical-align:middle;margin:0 2px;">`;
         }
+        // メンション（@ユーザー）をハイライト表示する
+        if (fragment.type === 'mention' && fragment.mention) {
+            const escapedText = fragment.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `<span class="mention-highlight">${escapedText}</span>`;
+        }
         return fragment.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }).join('');
 }
@@ -265,8 +270,25 @@ export function handleNotification(payload) {
             addCard({ type: 'raid', title: 'レイド!', username: 'テストチャンネル', contentHtml: '<span>テスト用レイド通知</span>', extra: '50人', colorClass: 'orange' });
             addCard({ type: 'follow', title: 'フォロー', username: 'テストフォロワー', contentHtml: '<span>チャンネルをフォローしました！</span>', colorClass: 'cyan' });
             addCard({ type: 'subscribe', title: 'サブスク', username: 'テストサブスクライバー', contentHtml: '<span>ティア1 サブスクライブ！🎉</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FF1493' });
+            // --- 新機能テストデータ ---
+            // リプライ（返信先）表示テスト
+            addCard({ type: 'chat', title: '', username: 'リプライテストさん', contentHtml: 'これは返信メッセージです！', colorClass: 'gray', userColor: '#9ACD32', reply: { parent_user_name: chatterName, parent_message_body: '元のメッセージの内容がここに表示されます' } });
+            // メンション（@ユーザー）ハイライトテスト
+            addCard({ type: 'chat', title: '', username: 'メンションテストさん', contentHtml: '<span class="mention-highlight">@' + chatterName + '</span> こんにちは！メンションのテストです', colorClass: 'gray', userColor: '#FF6347' });
+            // アナウンスメントテスト
+            addCard({ type: 'announcement', title: '📢 アナウンス', username: chatterName, contentHtml: '<span>本日20時から特別配信を行います！お楽しみに！</span>', colorClass: 'announcement', userColor });
+            // ハイライトメッセージ（channel_points_highlighted）テスト
+            addCard({ type: 'chat', title: '', username: 'ハイライトテストさん', contentHtml: 'チャンネルポイントで目立たせたメッセージです！', colorClass: 'gray', userColor: '#DAA520', messageType: 'channel_points_highlighted' });
+            // 自己紹介メッセージ（user_intro）テスト
+            addCard({ type: 'chat', title: '', username: '自己紹介テストさん', contentHtml: 'はじめまして！ゲーム好きです、よろしく！', colorClass: 'gray', userColor: '#20B2AA', messageType: 'user_intro' });
             return;
         }
+
+        // リプライ情報を抽出（返信メッセージの場合のみ存在する）
+        const replyData = event.reply ? {
+            parent_user_name: event.reply.parent_user_name,
+            parent_message_body: event.reply.parent_message_body
+        } : null;
 
         if (event.cheer && event.cheer.bits > 0) {
             addCard({
@@ -277,7 +299,8 @@ export function handleNotification(payload) {
                 contentHtml: `<span>${event.cheer.bits} Bits 🎉</span> <span class="text-gray-300"> ${messageHtml}</span>`,
                 extra: `${event.cheer.bits} Bits`,
                 colorClass: 'purple',
-                userColor: userColor
+                userColor: userColor,
+                reply: replyData
             });
             if (!state.seenUsers.has(chatterId)) {
                 state.seenUsers.add(chatterId);
@@ -318,7 +341,9 @@ export function handleNotification(payload) {
                 badges: event.badges,
                 contentHtml: messageHtml,
                 colorClass: isRaider ? 'raid_first' : 'blue',
-                userColor: userColor
+                userColor: userColor,
+                reply: replyData,
+                messageType: event.message_type
             });
         } else {
             addCard({
@@ -328,7 +353,9 @@ export function handleNotification(payload) {
                 badges: event.badges,
                 contentHtml: messageHtml,
                 colorClass: 'gray',
-                userColor: userColor
+                userColor: userColor,
+                reply: replyData,
+                messageType: event.message_type
             });
         }
     } else if (type === 'channel.chat.notification') {
@@ -389,6 +416,20 @@ export function handleNotification(payload) {
                 extra: tier,
                 colorClass: isFirstComment ? 'sub_first' : 'pink',
                 userColor: userColor
+            });
+        } else if (noticeType === 'announcement') {
+            // アナウンスメントの処理
+            const announcementColor = event.announcement ? event.announcement.color : 'primary';
+            const customMessageHtml = buildMessageHtml(event.message);
+            addCard({
+                type: 'announcement',
+                title: '📢 アナウンス',
+                username: chatterName,
+                badges: event.badges,
+                contentHtml: customMessageHtml,
+                colorClass: 'announcement',
+                userColor: userColor,
+                announcementColor: announcementColor
             });
         }
     } else if (type === 'channel.channel_points_custom_reward_redemption.add') {
