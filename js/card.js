@@ -186,7 +186,7 @@ export function addCard(data, isRestore = false) {
         pressTimer = setTimeout(() => {
             isLongPress = true;
             togglePin(card, data, colors);
-        }, 500); // 500msで長押し判定
+        }, 300); // 300msで長押し判定
     };
 
     const cancelPress = () => {
@@ -259,8 +259,9 @@ export function togglePin(originalCard, data, colors) {
         originalCard.classList.add('border-dashed', 'opacity-70');
 
         const clone = originalCard.cloneNode(true);
-        clone.classList.remove('border-dashed', 'opacity-70', 'is-pinned');
-        clone.classList.add('relative', 'shadow-md');
+        // ピン留め先では既読(薄い)状態を解除し、元の枠線を復活させる
+        clone.classList.remove('border-dashed', 'opacity-70', 'is-pinned', 'opacity-50', 'is-read', 'border-gray-600');
+        clone.classList.add('relative', 'shadow-md', colors.border);
 
         const badge = document.createElement('div');
         badge.className = 'absolute -top-2 -right-2 bg-yellow-500 text-black text-[0.6rem] font-bold px-1.5 py-0.5 rounded shadow z-10';
