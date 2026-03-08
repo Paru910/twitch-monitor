@@ -6,6 +6,7 @@ import { fetchTargetBroadcasterAndConnect } from './api.js';
 export const elements = {
     loginBtn: document.getElementById('login-btn'),
     loginSection: document.getElementById('login-section'),
+    pinnedContainer: document.getElementById('pinned-container'),
     cardsContainer: document.getElementById('cards-container'),
     statusIndicator: document.getElementById('status-indicator'),
     statusText: document.getElementById('status-text'),

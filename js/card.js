@@ -178,14 +178,7 @@ export function addCard(data, isRestore = false) {
     }
 
     card.addEventListener('click', () => {
-        const isRead = card.classList.toggle('is-read');
-        if (isRead) {
-            card.classList.remove(colors.border);
-            card.classList.add('border-gray-600', 'opacity-50');
-        } else {
-            card.classList.remove('border-gray-600', 'opacity-50');
-            card.classList.add(colors.border);
-        }
+        togglePin(card, data, colors);
     });
 
     elements.cardsContainer.appendChild(card);
@@ -205,6 +198,7 @@ export function addCard(data, isRestore = false) {
 
 export function restoreHistory() {
     elements.cardsContainer.innerHTML = '';
+    elements.pinnedContainer.innerHTML = '';
     state.messageHistory.forEach(data => {
         addCard(data, true);
     });
@@ -213,9 +207,41 @@ export function restoreHistory() {
     }
 }
 
+export function togglePin(originalCard, data, colors) {
+    if (originalCard.classList.contains('grayscale')) {
+        return; // 削除済みメッセージはピン留め不可
+    }
+
+    const messageId = originalCard.dataset.messageId;
+    if (!messageId) return;
+
+    const isPinned = originalCard.classList.toggle('is-pinned');
+
+    if (isPinned) {
+        originalCard.classList.add('border-dashed', 'opacity-70');
+
+        const clone = originalCard.cloneNode(true);
+        clone.classList.remove('border-dashed', 'opacity-70', 'is-pinned');
+        clone.classList.add('relative', 'shadow-md');
+
+        const badge = document.createElement('div');
+        badge.className = 'absolute -top-2 -right-2 bg-yellow-500 text-black text-[0.6rem] font-bold px-1.5 py-0.5 rounded shadow z-10';
+        badge.textContent = '📌 キープ';
+        clone.appendChild(badge);
+
+        clone.addEventListener('click', () => togglePin(originalCard, data, colors));
+
+        elements.pinnedContainer.appendChild(clone);
+    } else {
+        originalCard.classList.remove('border-dashed', 'opacity-70');
+        const clone = elements.pinnedContainer.querySelector(`div[data-message-id="${messageId}"]`);
+        if (clone) clone.remove();
+    }
+}
+
 export function removeMessage(messageId) {
     if (!messageId) return;
-    const cards = elements.cardsContainer.querySelectorAll(`div[data-message-id="${messageId}"]`);
+    const cards = document.querySelectorAll(`div[data-message-id="${messageId}"]`);
     cards.forEach(card => markCardAsDeleted(card));
     // 履歴データも更新してリロード時に復元できるようにする
     state.messageHistory.forEach(msg => {
@@ -226,7 +252,7 @@ export function removeMessage(messageId) {
 
 export function clearUserMessages(userId) {
     if (!userId) return;
-    const cards = elements.cardsContainer.querySelectorAll(`div[data-user-id="${userId}"]`);
+    const cards = document.querySelectorAll(`div[data-user-id="${userId}"]`);
     cards.forEach(card => markCardAsDeleted(card));
     state.messageHistory.forEach(msg => {
         if (msg.userId === userId) msg.isDeleted = true;
@@ -236,13 +262,16 @@ export function clearUserMessages(userId) {
 
 export function clearAllChat() {
     elements.cardsContainer.innerHTML = '';
+    elements.pinnedContainer.innerHTML = '';
     state.messageHistory = [];
     localStorage.setItem('chat_history', JSON.stringify(state.messageHistory));
 }
 
 function markCardAsDeleted(card) {
-    if (card.classList.contains('opacity-50') && card.classList.contains('grayscale')) return; // すでに削除済み
+    if (card.classList.contains('grayscale')) return; // すでに削除済み
     card.classList.add('opacity-50', 'grayscale');
+
+    // もしピン留めクローンなら、ピンアイコンを上書きしないようにする
     const contentDiv = card.querySelector('.break-words');
     if (contentDiv) {
         contentDiv.innerHTML = `<span class="text-red-500 text-xs font-bold block mb-1">🚫 このメッセージは削除されました</span><s class="text-gray-500">${contentDiv.innerHTML}</s>`;
