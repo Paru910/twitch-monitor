@@ -11,7 +11,8 @@ export const state = {
     fontSizeStep: parseInt(localStorage.getItem('fontSizeStep') || '0', 10),
     raidEndTime: 0,
     raidSource: '',
-    wsReconnectTimeout: null
+    wsReconnectTimeout: null,
+    currentFilter: 'all' // 'all', 'events', 'important' 
 };
 
 // Initialize seenUsers from localStorage

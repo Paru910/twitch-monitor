@@ -2,11 +2,14 @@ import { state } from './state.js';
 import { changeChannelPrompt } from './api.js';
 import { logout, initiateLogin } from './auth.js';
 import { fetchTargetBroadcasterAndConnect } from './api.js';
+import { applyFilter } from './card.js';
 
 export const elements = {
     loginBtn: document.getElementById('login-btn'),
     loginSection: document.getElementById('login-section'),
     pinnedContainer: document.getElementById('pinned-container'),
+    filterTabs: document.getElementById('filter-tabs'),
+    filterTabButtons: document.querySelectorAll('.filter-tab'),
     cardsContainer: document.getElementById('cards-container'),
     statusIndicator: document.getElementById('status-indicator'),
     statusText: document.getElementById('status-text'),
@@ -53,6 +56,7 @@ export function showLoginUI() {
     elements.helpBtn.classList.add('hidden');
     elements.toggleHeaderBtn.classList.add('hidden');
     elements.currentChannelText.classList.add('hidden');
+    elements.filterTabs.classList.add('hidden');
     updateStatus('未接続', 'red');
 }
 
@@ -68,6 +72,7 @@ export function showAppUI() {
     elements.fontDecreaseBtn.classList.remove('hidden');
     elements.helpBtn.classList.remove('hidden');
     elements.toggleHeaderBtn.classList.remove('hidden');
+    elements.filterTabs.classList.remove('hidden');
     updateStatus('接続中...', 'yellow');
 
     setTimeout(() => { elements.mainContainer.scrollTop = elements.mainContainer.scrollHeight; }, 50);
@@ -115,6 +120,22 @@ export function clearLogs() {
 }
 
 export function setupUIEventListeners() {
+    elements.filterTabButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const filter = e.currentTarget.dataset.filter;
+            state.currentFilter = filter;
+
+            elements.filterTabButtons.forEach(t => {
+                t.classList.remove('border-purple-500', 'text-white');
+                t.classList.add('border-transparent', 'text-gray-400');
+            });
+            e.currentTarget.classList.remove('border-transparent', 'text-gray-400');
+            e.currentTarget.classList.add('border-purple-500', 'text-white');
+
+            applyFilter();
+        });
+    });
+
     elements.loginBtn.addEventListener('click', initiateLogin);
     elements.clearLogsBtn.addEventListener('click', clearLogs);
     elements.changeChannelBtn.addEventListener('click', changeChannelPrompt);

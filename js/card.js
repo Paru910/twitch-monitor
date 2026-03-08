@@ -28,6 +28,7 @@ export function addCard(data, isRestore = false) {
     const card = document.createElement('div');
     if (data.messageId) card.dataset.messageId = data.messageId;
     if (data.userId) card.dataset.userId = data.userId;
+    card._messageData = data; // フィルタリング用に元のデータを保持
 
     const colorMap = {
         'blue': { bg: 'bg-blue-900', innerBg: '', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
@@ -313,4 +314,38 @@ function markCardAsDeleted(card) {
     if (contentDiv) {
         contentDiv.innerHTML = `<span class="text-red-500 text-xs font-bold block mb-1">🚫 このメッセージは削除されました</span><s class="text-gray-500">${contentDiv.innerHTML}</s>`;
     }
+}
+
+export function applyFilter() {
+    const filter = state.currentFilter || 'all';
+    const targetName = (state.targetChannelName || '').toLowerCase();
+
+    const cards = [
+        ...elements.cardsContainer.children,
+        ...elements.pinnedContainer.children
+    ];
+
+    cards.forEach(card => {
+        const data = card._messageData;
+        if (!data) return;
+
+        let shouldShow = true;
+
+        if (filter === 'events') {
+            if (data.type === 'chat' || data.type === 'first_comment' || data.type === 'raid_first') {
+                shouldShow = false;
+            }
+        } else if (filter === 'important') {
+            const isFirst = data.type === 'first_comment' || data.type === 'raid_first';
+            const isAnnouncement = data.type === 'announcement';
+            const isReply = !!(data.reply && data.reply.parent_user_name);
+            const isMention = targetName && (data.content || '').toLowerCase().includes(`@${targetName}`);
+
+            if (!isFirst && !isAnnouncement && !isReply && !isMention) {
+                shouldShow = false;
+            }
+        }
+
+        card.classList.toggle('hidden', !shouldShow);
+    });
 }

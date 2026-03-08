@@ -113,8 +113,24 @@
             </div>
         </div>
 
+        <!-- フィルタリングタブエリア -->
+        <div id="filter-tabs" class="hidden flex gap-2 mb-2 sticky top-0 z-20 bg-gray-900 py-1 px-1 shadow-sm">
+            <button data-filter="all"
+                class="filter-tab flex-1 bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-2 rounded-lg text-sm sm:text-base border-2 border-purple-500 transition-all active:scale-95">
+                すべて
+            </button>
+            <button data-filter="events"
+                class="filter-tab flex-1 bg-gray-800 hover:bg-gray-700 text-gray-400 font-bold py-2 px-2 rounded-lg text-sm sm:text-base border-2 border-transparent transition-all active:scale-95">
+                イベント
+            </button>
+            <button data-filter="important"
+                class="filter-tab flex-1 bg-gray-800 hover:bg-gray-700 text-gray-400 font-bold py-2 px-2 rounded-lg text-sm sm:text-base border-2 border-transparent transition-all active:scale-95">
+                初見・通知
+            </button>
+        </div>
+
         <!-- イベントカードリストエリア -->
-        <div id="pinned-container" class="sticky top-0 z-10 w-full mb-2 empty:hidden flex flex-col gap-2"></div>
+        <div id="pinned-container" class="sticky top-[3.5rem] z-10 w-full mb-2 empty:hidden flex flex-col gap-2"></div>
         <div id="cards-container" class="hidden flex-col gap-4 pb-1">
             <!-- 
                 カードのHTML構造例。実際はJavaScriptで動的に生成します。
