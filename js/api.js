@@ -192,6 +192,8 @@ export async function subscribeToEvents(sessionId) {
 
     if (state.targetBroadcasterId === state.loggedInUserId) {
         types.push({ type: 'channel.channel_points_custom_reward_redemption.add', version: '1', condition: { broadcaster_user_id: state.targetBroadcasterId } });
+        // Power Ups / Bits使用イベント（bits:readスコープ必須・自チャンネルのみ）
+        types.push({ type: 'channel.bits.use', version: '1', condition: { broadcaster_user_id: state.targetBroadcasterId } });
     }
     types.push({ type: 'channel.follow', version: '2', condition: { broadcaster_user_id: state.targetBroadcasterId, moderator_user_id: state.loggedInUserId } });
     types.push({ type: 'channel.raid', version: '1', condition: { to_broadcaster_user_id: state.targetBroadcasterId } });
@@ -312,6 +314,11 @@ export function handleNotification(payload) {
             addCard({ type: 'subscribe', messageId: 'm20', userId: 'u20', title: 'サブスク', username: '詳細サブテストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 (累計24ヶ月)</span>&nbsp;<span class="sub-detail"><span class="sub-streak">🔥 連続 12ヶ月</span></span><br><span class="text-gray-300 mt-1 block">いつも楽しい配信ありがとう！</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FFD700' });
             // Prime サブテスト
             addCard({ type: 'subscribe', messageId: 'm21', userId: 'u21', title: 'サブスク', username: 'Primeサブさん', contentHtml: '<span>Prime サブスクライブ！🎉</span>&nbsp;<span class="sub-detail"><span class="sub-prime">👑 Prime Gaming</span></span>', extra: 'Prime', colorClass: 'pink', userColor: '#1E90FF' });
+
+            // --- Power Ups テストデータ ---
+            addCard({ type: 'power_up', messageId: 'm22', userId: 'u22', title: '✨ メッセージエフェクト', username: 'エフェクトさん', contentHtml: '<span>キラキラ✨メッセージ！</span>', extra: '100 Bits', colorClass: 'purple', userColor: '#E040FB', powerUpType: 'message_effect' });
+            addCard({ type: 'power_up', messageId: 'm23', userId: 'u23', title: '🎊 セレブレーション', username: 'お祝いさん', contentHtml: '<span>おめでとう！🎉</span>', extra: '200 Bits', colorClass: 'purple', userColor: '#FF7043', powerUpType: 'celebration' });
+            addCard({ type: 'power_up', messageId: 'm24', userId: 'u24', title: '🔍 巨大エモート', username: '巨大エモートさん', contentHtml: '<img src="https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_dc24652ada1e4c84a5e3ceebae4de709/static/dark/2.0" alt="emote" style="height:3em;vertical-align:middle;">', extra: '50 Bits', colorClass: 'purple', userColor: '#42A5F5', powerUpType: 'gigantify_an_emote' });
 
             // 削除・クリアのテスト用に少し時間を置いて削除を発火させる
             setTimeout(() => removeMessage('m9'), 3000); // 3秒後にリプライメッセージを個別に削除
@@ -699,5 +706,47 @@ export function handleNotification(payload) {
             extra: tier,
             colorClass: 'pink'
         });
+    } else if (type === 'channel.bits.use') {
+        // Power Ups / Bits使用イベントの処理
+        // type=cheer は既存の channel.chat.message の cheer.bits で処理済みのためスキップ
+        if (event.type === 'power_up' && event.power_up) {
+            const userName = event.user_name || event.user_login;
+            const bits = event.bits || 0;
+            const powerUpType = event.power_up.type;
+
+            // Power Upの種類に応じたタイトルを設定
+            const titleMap = {
+                'message_effect': '✨ メッセージエフェクト',
+                'celebration': '🎊 セレブレーション',
+                'gigantify_an_emote': '🔍 巨大エモート'
+            };
+            const title = titleMap[powerUpType] || `⚡ Power Up (${powerUpType})`;
+
+            // メッセージ本文の描画（fragments対応）
+            let messageHtml = '';
+            if (event.message && event.message.fragments) {
+                messageHtml = buildMessageHtml(event.message);
+            } else if (event.message && event.message.text) {
+                messageHtml = event.message.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            // 巨大エモートの場合、エモート画像を大きく表示する
+            if (powerUpType === 'gigantify_an_emote' && event.power_up.emote) {
+                const emoteId = event.power_up.emote.id;
+                const emoteName = event.power_up.emote.name || 'emote';
+                const emoteUrl = `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/static/dark/3.0`;
+                messageHtml = `<img src="${emoteUrl}" alt="${emoteName}" title="${emoteName}" style="height:3em;vertical-align:middle;">`;
+            }
+
+            addCard({
+                type: 'power_up',
+                title: title,
+                username: userName,
+                contentHtml: `<span>${messageHtml}</span>`,
+                extra: `${bits} Bits`,
+                colorClass: 'purple',
+                powerUpType: powerUpType
+            });
+        }
     }
 }
