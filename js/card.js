@@ -80,7 +80,8 @@ export function addCard(data, isRestore = false) {
     const nameColorStyle = data.userColor ? `style="color: ${data.userColor};"` : '';
     let nameShadowClass = '';
     if (data.userColor) {
-        nameShadowClass = isColorDark(data.userColor) ? 'name-shadow-thick' : 'name-shadow-default';
+        // 暗い色には白縁取り、明るい色には黒縁取りを適用して視認性を高める
+        nameShadowClass = isColorDark(data.userColor) ? 'name-shadow-light' : 'name-shadow-thick';
     }
     const whiteTextClass = data.userColor ? '' : 'text-white';
     const titleTextClass = data.userColor ? '' : colors.textTitle;
@@ -135,6 +136,10 @@ export function addCard(data, isRestore = false) {
         || data.type === 'community_gift' || data.type === 'sub_upgrade'
         || data.type === 'pay_it_forward' || data.type === 'bits_badge'
         || data.type === 'charity' || data.type === 'system_notice') {
+
+        // サブスク系（すでに本文にTierやPrime情報が含まれているため重複するラベルを非表示にする）
+        const isSubRelated = ['subscribe', 'community_gift', 'sub_upgrade', 'pay_it_forward'].includes(data.type);
+
         // イベント通知系カード共通テンプレート（タイトル+ユーザー名+内容）
         html = `
                     <div class="flex items-center justify-between gap-2 mb-1">
@@ -144,7 +149,7 @@ export function addCard(data, isRestore = false) {
                         </div>
                         <span class="text-[0.65rem] text-gray-400 whitespace-nowrap ml-1">${timeStr}</span>
                     </div>
-                    ${data.extra ? `<div class="${colors.textExtra} ${colors.extraBg} text-sm font-bold mb-1">${data.extra}</div>` : ''}
+                    ${data.extra && !isSubRelated ? `<div class="${colors.textExtra} ${colors.extraBg} text-sm font-bold mb-1">${data.extra}</div>` : ''}
                     <div class="text-sm ${colors.textContent} break-words leading-snug mt-1">${messageHtmlContent}</div>
                 `;
     } else {
