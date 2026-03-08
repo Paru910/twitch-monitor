@@ -30,6 +30,7 @@ export const elements = {
     fullscreenBtn: document.getElementById('fullscreen-btn'),
     fullscreenIconEnter: document.getElementById('fullscreen-icon-enter'),
     fullscreenIconExit: document.getElementById('fullscreen-icon-exit'),
+    toggleFilterBtn: document.getElementById('toggle-filter-btn'),
     mainContainer: document.getElementById('main-container'),
 };
 
@@ -57,6 +58,7 @@ export function showLoginUI() {
     elements.toggleHeaderBtn.classList.add('hidden');
     elements.currentChannelText.classList.add('hidden');
     elements.filterTabs.classList.add('hidden');
+    elements.toggleFilterBtn.classList.add('hidden');
     updateStatus('未接続', 'red');
 }
 
@@ -72,7 +74,11 @@ export function showAppUI() {
     elements.fontDecreaseBtn.classList.remove('hidden');
     elements.helpBtn.classList.remove('hidden');
     elements.toggleHeaderBtn.classList.remove('hidden');
-    elements.filterTabs.classList.remove('hidden');
+    elements.toggleFilterBtn.classList.remove('hidden');
+    // タブ表示はlocalStorageの保存状態に従う
+    const filterEnabled = localStorage.getItem('filterTabsEnabled') !== 'false';
+    elements.filterTabs.classList.toggle('hidden', !filterEnabled);
+    updateFilterBtnStyle(filterEnabled);
     updateStatus('接続中...', 'yellow');
 
     setTimeout(() => { elements.mainContainer.scrollTop = elements.mainContainer.scrollHeight; }, 50);
@@ -119,6 +125,17 @@ export function clearLogs() {
     }
 }
 
+// タブON/OFFに応じてトグルボタンの見た目を切り替える
+function updateFilterBtnStyle(enabled) {
+    if (enabled) {
+        elements.toggleFilterBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+        elements.toggleFilterBtn.classList.add('bg-purple-700', 'hover:bg-purple-600');
+    } else {
+        elements.toggleFilterBtn.classList.remove('bg-purple-700', 'hover:bg-purple-600');
+        elements.toggleFilterBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+    }
+}
+
 export function setupUIEventListeners() {
     elements.filterTabButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -134,6 +151,19 @@ export function setupUIEventListeners() {
 
             applyFilter();
         });
+    });
+
+    // タブ表示切替ボタン（ON/OFFをlocalStorageに保存）
+    elements.toggleFilterBtn.addEventListener('click', () => {
+        const isVisible = !elements.filterTabs.classList.contains('hidden');
+        elements.filterTabs.classList.toggle('hidden', isVisible);
+        localStorage.setItem('filterTabsEnabled', String(!isVisible));
+        updateFilterBtnStyle(!isVisible);
+        // タブを非表示にしたときは「すべて」フィルタにリセット
+        if (isVisible) {
+            state.currentFilter = 'all';
+            applyFilter();
+        }
     });
 
     elements.loginBtn.addEventListener('click', initiateLogin);
