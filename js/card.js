@@ -26,6 +26,8 @@ export function buildBadgesHtml(badges) {
 
 export function addCard(data, isRestore = false) {
     const card = document.createElement('div');
+    if (data.messageId) card.dataset.messageId = data.messageId;
+    if (data.userId) card.dataset.userId = data.userId;
 
     const colorMap = {
         'blue': { bg: 'bg-blue-900', innerBg: '', border: 'border-blue-500', textTitle: 'text-blue-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
@@ -46,11 +48,16 @@ export function addCard(data, isRestore = false) {
 
     const colors = colorMap[data.colorClass] || colorMap['gray'];
     const badgesHtml = buildBadgesHtml(data.badges);
-    const messageHtmlContent = data.contentHtml !== undefined
+    let messageHtmlContent = data.contentHtml !== undefined
         ? data.contentHtml
         : (data.content || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+    if (data.isDeleted) {
+        messageHtmlContent = `<span class="text-red-500 text-xs font-bold block mb-1">🚫 このメッセージは削除されました</span><s class="text-gray-500">${messageHtmlContent}</s>`;
+    }
+
     card.className = `${colors.bg} border-l-4 ${colors.border} p-3 rounded-lg shadow cursor-pointer transition-all duration-300`;
+    if (data.isDeleted) card.classList.add('opacity-50', 'grayscale');
 
     if (!data.timeStr) {
         const now = new Date();
@@ -203,5 +210,41 @@ export function restoreHistory() {
     });
     if (state.isAutoScroll) {
         elements.mainContainer.scrollTop = elements.mainContainer.scrollHeight;
+    }
+}
+
+export function removeMessage(messageId) {
+    if (!messageId) return;
+    const cards = elements.cardsContainer.querySelectorAll(`div[data-message-id="${messageId}"]`);
+    cards.forEach(card => markCardAsDeleted(card));
+    // 履歴データも更新してリロード時に復元できるようにする
+    state.messageHistory.forEach(msg => {
+        if (msg.messageId === messageId) msg.isDeleted = true;
+    });
+    localStorage.setItem('chat_history', JSON.stringify(state.messageHistory));
+}
+
+export function clearUserMessages(userId) {
+    if (!userId) return;
+    const cards = elements.cardsContainer.querySelectorAll(`div[data-user-id="${userId}"]`);
+    cards.forEach(card => markCardAsDeleted(card));
+    state.messageHistory.forEach(msg => {
+        if (msg.userId === userId) msg.isDeleted = true;
+    });
+    localStorage.setItem('chat_history', JSON.stringify(state.messageHistory));
+}
+
+export function clearAllChat() {
+    elements.cardsContainer.innerHTML = '';
+    state.messageHistory = [];
+    localStorage.setItem('chat_history', JSON.stringify(state.messageHistory));
+}
+
+function markCardAsDeleted(card) {
+    if (card.classList.contains('opacity-50') && card.classList.contains('grayscale')) return; // すでに削除済み
+    card.classList.add('opacity-50', 'grayscale');
+    const contentDiv = card.querySelector('.break-words');
+    if (contentDiv) {
+        contentDiv.innerHTML = `<span class="text-red-500 text-xs font-bold block mb-1">🚫 このメッセージは削除されました</span><s class="text-gray-500">${contentDiv.innerHTML}</s>`;
     }
 }

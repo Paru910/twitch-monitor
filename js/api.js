@@ -2,7 +2,7 @@ import { config } from './config.js';
 import { state } from './state.js';
 import { logout } from './auth.js';
 import { updateStatus, elements, clearLogs } from './ui.js';
-import { addCard } from './card.js';
+import { addCard, removeMessage, clearUserMessages, clearAllChat } from './card.js';
 
 export async function fetchUserData() {
     try {
@@ -184,6 +184,9 @@ export function connectWebSocket() {
 export async function subscribeToEvents(sessionId) {
     const types = [
         { type: 'channel.chat.message', version: '1', condition: { broadcaster_user_id: state.targetBroadcasterId, user_id: state.loggedInUserId } },
+        { type: 'channel.chat.message_delete', version: '1', condition: { broadcaster_user_id: state.targetBroadcasterId, user_id: state.loggedInUserId } },
+        { type: 'channel.chat.clear', version: '1', condition: { broadcaster_user_id: state.targetBroadcasterId, user_id: state.loggedInUserId } },
+        { type: 'channel.chat.clear_user_messages', version: '1', condition: { broadcaster_user_id: state.targetBroadcasterId, user_id: state.loggedInUserId } },
         { type: 'channel.chat.notification', version: '1', condition: { broadcaster_user_id: state.targetBroadcasterId, user_id: state.loggedInUserId } }
     ];
 
@@ -273,42 +276,47 @@ export function handleNotification(payload) {
         const messageHtml = buildMessageHtml(event.message);
 
         if (chatterId === state.loggedInUserId && event.message.text.trim() === '!test') {
-            addCard({ type: 'first_comment', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue', userColor: '#000000' }); // Test black color conversion
-            addCard({ type: 'subscribe', title: '初コメ ⭐ サブスク', username: '複合色テストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 </span><br><span class="text-gray-300 mt-1 block">複合カラー（外側青色、内側ピンク）のテストです！</span>', extra: 'Tier 1', colorClass: 'sub_first', userColor: '#FF69B4' });
-            addCard({ type: 'raid_comment', title: 'レイド 🚨 テストchから', username: chatterName, content: 'レイドの二重構造（青色・オレンジ）テスト', colorClass: 'raid_first', userColor: '#00008B' }); // Test dark blue color conversion
-            addCard({ type: 'cheer', title: '【テスト】ビッツ', username: chatterName, content: '応援してます！(テスト)', extra: '500 Bits', colorClass: 'purple', userColor });
-            addCard({ type: 'points', title: '【テスト】チャンネルポイント', username: chatterName, content: '(テストのテキスト入力)', extra: '足つぼマッサージ', colorClass: 'emerald', userColor });
-            addCard({ type: 'raid', title: 'レイド!', username: 'テストチャンネル', contentHtml: '<span>テスト用レイド通知</span>', extra: '50人', colorClass: 'orange' });
-            addCard({ type: 'follow', title: 'フォロー', username: 'テストフォロワー', contentHtml: '<span>チャンネルをフォローしました！</span>', colorClass: 'cyan' });
-            addCard({ type: 'subscribe', title: 'サブスク', username: 'テストサブスクライバー', contentHtml: '<span>ティア1 サブスクライブ！🎉</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FF1493' });
+            addCard({ type: 'first_comment', messageId: 'm1', userId: 'u1', title: '【テスト】初コメ', username: chatterName, content: '初見です！(テスト)', colorClass: 'blue', userColor: '#000000' });
+            addCard({ type: 'subscribe', messageId: 'm2', userId: 'u2', title: '初コメ ⭐ サブスク', username: '複合色テストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 </span><br><span class="text-gray-300 mt-1 block">複合カラー（外側青色、内側ピンク）のテストです！</span>', extra: 'Tier 1', colorClass: 'sub_first', userColor: '#FF69B4' });
+            addCard({ type: 'raid_comment', messageId: 'm3', userId: 'u3', title: 'レイド 🚨 テストchから', username: chatterName, content: 'レイドの二重構造（青色・オレンジ）テスト', colorClass: 'raid_first', userColor: '#00008B' });
+            addCard({ type: 'cheer', messageId: 'm4', userId: chatterId, title: '【テスト】ビッツ', username: chatterName, content: '応援してます！(テスト)', extra: '500 Bits', colorClass: 'purple', userColor });
+            addCard({ type: 'points', messageId: 'm5', userId: chatterId, title: '【テスト】チャンネルポイント', username: chatterName, content: '(テストのテキスト入力)', extra: '足つぼマッサージ', colorClass: 'emerald', userColor });
+            addCard({ type: 'raid', messageId: 'm6', userId: 'test_channel', title: 'レイド!', username: 'テストチャンネル', contentHtml: '<span>テスト用レイド通知</span>', extra: '50人', colorClass: 'orange' });
+            addCard({ type: 'follow', messageId: 'm7', userId: 'test_follower', title: 'フォロー', username: 'テストフォロワー', contentHtml: '<span>チャンネルをフォローしました！</span>', colorClass: 'cyan' });
+            addCard({ type: 'subscribe', messageId: 'm8', userId: 'test_sub', title: 'サブスク', username: 'テストサブスクライバー', contentHtml: '<span>ティア1 サブスクライブ！🎉</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FF1493' });
             // --- v1.1 新機能テストデータ ---
             // リプライ（返信先）表示テスト
-            addCard({ type: 'chat', title: '', username: 'リプライテストさん', contentHtml: 'これは返信メッセージです！', colorClass: 'gray', userColor: '#9ACD32', reply: { parent_user_name: chatterName, parent_message_body: '元のメッセージの内容がここに表示されます' } });
+            addCard({ type: 'chat', messageId: 'm9', userId: 'u9', title: '', username: 'リプライテストさん', contentHtml: 'これは返信メッセージです！', colorClass: 'gray', userColor: '#9ACD32', reply: { parent_user_name: chatterName, parent_message_body: '元のメッセージの内容がここに表示されます' } });
             // メンション（@ユーザー）ハイライトテスト
-            addCard({ type: 'chat', title: '', username: 'メンションテストさん', contentHtml: '<span class="mention-highlight">@' + chatterName + '</span> こんにちは！メンションのテストです', colorClass: 'gray', userColor: '#FF6347' });
+            addCard({ type: 'chat', messageId: 'm10', userId: 'u10', title: '', username: 'メンションテストさん', contentHtml: '<span class="mention-highlight">@' + chatterName + '</span> こんにちは！メンションのテストです', colorClass: 'gray', userColor: '#FF6347' });
             // アナウンスメントテスト
-            addCard({ type: 'announcement', title: '📢 アナウンス', username: chatterName, contentHtml: '<span>本日20時から特別配信を行います！お楽しみに！</span>', colorClass: 'announcement', userColor });
+            addCard({ type: 'announcement', messageId: 'm11', userId: chatterId, title: '📢 アナウンス', username: chatterName, contentHtml: '<span>本日20時から特別配信を行います！お楽しみに！</span>', colorClass: 'announcement', userColor });
             // ハイライトメッセージ（channel_points_highlighted）テスト
-            addCard({ type: 'chat', title: '', username: 'ハイライトテストさん', contentHtml: 'チャンネルポイントで目立たせたメッセージです！', colorClass: 'gray', userColor: '#DAA520', messageType: 'channel_points_highlighted' });
+            addCard({ type: 'chat', messageId: 'm12', userId: 'u12', title: '', username: 'ハイライトテストさん', contentHtml: 'チャンネルポイントで目立たせたメッセージです！', colorClass: 'gray', userColor: '#DAA520', messageType: 'channel_points_highlighted' });
             // 自己紹介メッセージ（user_intro）テスト
-            addCard({ type: 'chat', title: '', username: '自己紹介テストさん', contentHtml: 'はじめまして！ゲーム好きです、よろしく！', colorClass: 'gray', userColor: '#20B2AA', messageType: 'user_intro' });
+            addCard({ type: 'chat', messageId: 'm13', userId: 'u13', title: '', username: '自己紹介テストさん', contentHtml: 'はじめまして！ゲーム好きです、よろしく！', colorClass: 'gray', userColor: '#20B2AA', messageType: 'user_intro' });
             // --- v1.2 新機能テストデータ ---
             // コミュニティギフトサブテスト
-            addCard({ type: 'community_gift', title: '🎁 コミュニティギフト', username: 'ギフターテストさん', contentHtml: '<span>コミュニティに <strong>10個</strong> のTier 1サブギフトを贈りました！</span>', extra: '10個 / Tier 1', colorClass: 'pink', userColor: '#FF69B4' });
+            addCard({ type: 'community_gift', messageId: 'm14', userId: 'u14', title: '🎁 コミュニティギフト', username: 'ギフターテストさん', contentHtml: '<span>コミュニティに <strong>10個</strong> のTier 1サブギフトを贈りました！</span>', extra: '10個 / Tier 1', colorClass: 'pink', userColor: '#FF69B4' });
             // ギフトサブ→有料アップグレードテスト
-            addCard({ type: 'sub_upgrade', title: '⬆ サブ継続', username: 'アップグレードさん', contentHtml: '<span>ギフトサブからTier 1の有料サブに継続しました！<br><span class="text-gray-400 text-xs">ギフト元: ギフターテストさん</span></span>', colorClass: 'pink', userColor: '#BA55D3' });
+            addCard({ type: 'sub_upgrade', messageId: 'm15', userId: 'u15', title: '⬆ サブ継続', username: 'アップグレードさん', contentHtml: '<span>ギフトサブからTier 1の有料サブに継続しました！<br><span class="text-gray-400 text-xs">ギフト元: ギフターテストさん</span></span>', colorClass: 'pink', userColor: '#BA55D3' });
             // Prime→有料アップグレードテスト
-            addCard({ type: 'sub_upgrade', title: '⬆ Prime→有料', username: 'Primeアップグレードさん', contentHtml: '<span>PrimeからTier 1の有料サブにアップグレードしました！</span>', colorClass: 'pink', userColor: '#00CED1' });
+            addCard({ type: 'sub_upgrade', messageId: 'm16', userId: 'u16', title: '⬆ Prime→有料', username: 'Primeアップグレードさん', contentHtml: '<span>PrimeからTier 1の有料サブにアップグレードしました！</span>', colorClass: 'pink', userColor: '#00CED1' });
             // ペイ・イット・フォワードテスト
-            addCard({ type: 'pay_it_forward', title: '💝 ペイフォワード', username: 'ペイフォワードさん', contentHtml: '<span>ギフトサブの恩送り！<br><span class="text-gray-400 text-xs">ギフト元: 匿名さん</span></span>', colorClass: 'pink', userColor: '#FFB6C1' });
+            addCard({ type: 'pay_it_forward', messageId: 'm17', userId: 'u17', title: '💝 ペイフォワード', username: 'ペイフォワードさん', contentHtml: '<span>ギフトサブの恩送り！<br><span class="text-gray-400 text-xs">ギフト元: 匿名さん</span></span>', colorClass: 'pink', userColor: '#FFB6C1' });
             // Bitsバッジティア達成テスト
-            addCard({ type: 'bits_badge', title: '💎 Bitsバッジ', username: 'Bitsコレクターさん', contentHtml: '<span>Bitsバッジ <strong>10000</strong> ティアを達成しました！</span>', colorClass: 'purple', userColor: '#9370DB' });
+            addCard({ type: 'bits_badge', messageId: 'm18', userId: 'u18', title: '💎 Bitsバッジ', username: 'Bitsコレクターさん', contentHtml: '<span>Bitsバッジ <strong>10000</strong> ティアを達成しました！</span>', colorClass: 'purple', userColor: '#9370DB' });
             // チャリティ寄付テスト
-            addCard({ type: 'charity', title: '❤️ チャリティ寄付', username: '寄付テストさん', contentHtml: '<span><strong>$25.00</strong> を <strong>テストチャリティ団体</strong> に寄付しました！</span>', colorClass: 'charity', userColor: '#FF6347' });
+            addCard({ type: 'charity', messageId: 'm19', userId: 'u19', title: '❤️ チャリティ寄付', username: '寄付テストさん', contentHtml: '<span><strong>$25.00</strong> を <strong>テストチャリティ団体</strong> に寄付しました！</span>', colorClass: 'charity', userColor: '#FF6347' });
             // 再サブスク+詳細情報テスト (streak/prime/gifter)
-            addCard({ type: 'subscribe', title: 'サブスク', username: '詳細サブテストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 (累計24ヶ月)</span>&nbsp;<span class="sub-detail"><span class="sub-streak">🔥 連続 12ヶ月</span></span><br><span class="text-gray-300 mt-1 block">いつも楽しい配信ありがとう！</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FFD700' });
+            addCard({ type: 'subscribe', messageId: 'm20', userId: 'u20', title: 'サブスク', username: '詳細サブテストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 (累計24ヶ月)</span>&nbsp;<span class="sub-detail"><span class="sub-streak">🔥 連続 12ヶ月</span></span><br><span class="text-gray-300 mt-1 block">いつも楽しい配信ありがとう！</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FFD700' });
             // Prime サブテスト
-            addCard({ type: 'subscribe', title: 'サブスク', username: 'Primeサブさん', contentHtml: '<span>Prime サブスクライブ！🎉</span>&nbsp;<span class="sub-detail"><span class="sub-prime">👑 Prime Gaming</span></span>', extra: 'Prime', colorClass: 'pink', userColor: '#1E90FF' });
+            addCard({ type: 'subscribe', messageId: 'm21', userId: 'u21', title: 'サブスク', username: 'Primeサブさん', contentHtml: '<span>Prime サブスクライブ！🎉</span>&nbsp;<span class="sub-detail"><span class="sub-prime">👑 Prime Gaming</span></span>', extra: 'Prime', colorClass: 'pink', userColor: '#1E90FF' });
+
+            // 削除・クリアのテスト用に少し時間を置いて削除を発火させる
+            setTimeout(() => removeMessage('m9'), 3000); // 3秒後にリプライメッセージを個別に削除
+            setTimeout(() => clearUserMessages('u20'), 4500); // 4.5秒後に詳細サブテストさんをユーザー単位で削除
+
             return;
         }
 
@@ -322,6 +330,8 @@ export function handleNotification(payload) {
             addCard({
                 type: 'cheer',
                 title: 'Bits',
+                messageId: event.message_id,
+                userId: chatterId,
                 username: chatterName,
                 badges: event.badges,
                 contentHtml: `<span>${event.cheer.bits} Bits 🎉</span> <span class="text-gray-300"> ${messageHtml}</span>`,
@@ -342,6 +352,8 @@ export function handleNotification(payload) {
             addCard({
                 type: 'points',
                 title: 'ポイント',
+                messageId: event.message_id,
+                userId: chatterId,
                 username: chatterName,
                 badges: event.badges,
                 contentHtml: `<span class="text-gray-300">${messageHtml}</span>`,
@@ -365,6 +377,8 @@ export function handleNotification(payload) {
             addCard({
                 type: isRaider ? 'raid_comment' : 'first_comment',
                 title: isRaider ? `レイド 🚨 ${state.raidSource}から` : '初コメ ⭐',
+                messageId: event.message_id,
+                userId: chatterId,
                 username: chatterName,
                 badges: event.badges,
                 contentHtml: messageHtml,
@@ -377,6 +391,8 @@ export function handleNotification(payload) {
             addCard({
                 type: 'chat',
                 title: '',
+                messageId: event.message_id,
+                userId: chatterId,
                 username: chatterName,
                 badges: event.badges,
                 contentHtml: messageHtml,
@@ -386,6 +402,12 @@ export function handleNotification(payload) {
                 messageType: event.message_type
             });
         }
+    } else if (type === 'channel.chat.message_delete') {
+        removeMessage(event.target_message_id);
+    } else if (type === 'channel.chat.clear_user_messages') {
+        clearUserMessages(event.target_user_id);
+    } else if (type === 'channel.chat.clear') {
+        clearAllChat();
     } else if (type === 'channel.chat.notification') {
         const noticeType = event.notice_type;
         const chatterName = event.chatter_user_name || event.chatter_user_login || 'System';
