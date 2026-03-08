@@ -92,7 +92,7 @@ export function addCard(data, isRestore = false) {
                     <div class="flex items-center justify-between gap-2 mb-1">
                         <div class="flex items-center gap-1 truncate">
                             <span class="text-xs font-bold ${colors.textTitle} bg-yellow-800 px-1.5 py-0.5 rounded whitespace-nowrap">${data.title}</span>
-                            <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${badgesHtml}${data.username}</span>
+                            <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate pr-1" ${nameColorStyle}>${badgesHtml}${data.username}</span>
                         </div>
                         <span class="text-[0.65rem] text-gray-400 whitespace-nowrap ml-1">${timeStr}</span>
                     </div>
@@ -101,7 +101,7 @@ export function addCard(data, isRestore = false) {
     } else if (data.type === 'cheer') {
         html = `
                     <div class="flex items-start justify-between gap-2 mb-1">
-                        <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${badgesHtml}${data.username}</span>
+                        <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate pr-1" ${nameColorStyle}>${badgesHtml}${data.username}</span>
                         <div class="flex flex-col items-end whitespace-nowrap">
                             <span class="${colors.textExtra} text-sm font-bold">${data.extra}</span>
                             <span class="text-[0.65rem] text-gray-400 mt-0.5">${timeStr}</span>
@@ -112,7 +112,7 @@ export function addCard(data, isRestore = false) {
     } else if (data.type === 'points') {
         html = `
                     <div class="flex items-center justify-between gap-2 mb-1">
-                        <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${badgesHtml}${data.username}</span>
+                        <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate pr-1" ${nameColorStyle}>${badgesHtml}${data.username}</span>
                         <span class="text-[0.65rem] text-gray-400 whitespace-nowrap">${timeStr}</span>
                     </div>
                     <div class="${colors.textExtra} ${colors.extraBg} text-sm font-bold">${data.extra}</div>
@@ -124,7 +124,7 @@ export function addCard(data, isRestore = false) {
                     <div class="flex items-center justify-between gap-1 mb-1">
                         <div class="flex items-center gap-1 truncate">
                             <span class="text-xs font-bold ${colors.textTitle} ${badgeColor} px-1.5 py-0.5 rounded whitespace-nowrap">${data.title}</span>
-                            <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${badgesHtml}${data.username}</span>
+                            <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate pr-1" ${nameColorStyle}>${badgesHtml}${data.username}</span>
                         </div>
                         <span class="text-[0.65rem] text-gray-400 whitespace-nowrap ml-1">${timeStr}</span>
                     </div>
@@ -145,7 +145,7 @@ export function addCard(data, isRestore = false) {
                     <div class="flex items-center justify-between gap-2 mb-1">
                         <div class="flex items-center gap-1 truncate">
                             ${data.title ? `<span class="text-xs font-bold ${colors.textTitle} ${colors.bg} px-1.5 py-0.5 rounded whitespace-nowrap">${data.title}</span>` : ''}
-                            <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${badgesHtml}${data.username}</span>
+                            <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate pr-1" ${nameColorStyle}>${badgesHtml}${data.username}</span>
                         </div>
                         <span class="text-[0.65rem] text-gray-400 whitespace-nowrap ml-1">${timeStr}</span>
                     </div>
@@ -155,7 +155,7 @@ export function addCard(data, isRestore = false) {
     } else {
         html = `
                     <div class="flex items-start justify-between gap-2 mb-0.5">
-                        <span class="text-sm font-bold ${titleTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${badgesHtml}${data.username}</span>
+                        <span class="text-sm font-bold ${titleTextClass} ${nameShadowClass} truncate pr-1" ${nameColorStyle}>${badgesHtml}${data.username}</span>
                         <span class="text-[0.65rem] text-gray-500 whitespace-nowrap mt-0.5">${timeStr}</span>
                     </div>
                     ${replyHtml}

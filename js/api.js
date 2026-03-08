@@ -306,9 +306,9 @@ export function handleNotification(payload) {
             // チャリティ寄付テスト
             addCard({ type: 'charity', title: '❤️ チャリティ寄付', username: '寄付テストさん', contentHtml: '<span><strong>$25.00</strong> を <strong>テストチャリティ団体</strong> に寄付しました！</span>', colorClass: 'charity', userColor: '#FF6347' });
             // 再サブスク+詳細情報テスト (streak/prime/gifter)
-            addCard({ type: 'subscribe', title: 'サブスク', username: '詳細サブテストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 (累計24ヶ月)</span><br><span class="sub-detail"><span class="sub-streak">🔥 連続 12ヶ月</span></span><br><span class="text-gray-300 mt-1 block">いつも楽しい配信ありがとう！</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FFD700' });
+            addCard({ type: 'subscribe', title: 'サブスク', username: '詳細サブテストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 (累計24ヶ月)</span>&nbsp;<span class="sub-detail"><span class="sub-streak">🔥 連続 12ヶ月</span></span><br><span class="text-gray-300 mt-1 block">いつも楽しい配信ありがとう！</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FFD700' });
             // Prime サブテスト
-            addCard({ type: 'subscribe', title: 'サブスク', username: 'Primeサブさん', contentHtml: '<span>Prime サブスクライブ！🎉</span><br><span class="sub-detail"><span class="sub-prime">👑 Prime Gaming</span></span>', extra: 'Prime', colorClass: 'pink', userColor: '#1E90FF' });
+            addCard({ type: 'subscribe', title: 'サブスク', username: 'Primeサブさん', contentHtml: '<span>Prime サブスクライブ！🎉</span>&nbsp;<span class="sub-detail"><span class="sub-prime">👑 Prime Gaming</span></span>', extra: 'Prime', colorClass: 'pink', userColor: '#1E90FF' });
             return;
         }
 
@@ -449,7 +449,7 @@ export function handleNotification(payload) {
             }
             // サブ詳細情報（連続月数・Prime・ギフター等）の追加
             if (subDetailParts.length > 0) {
-                messageHtmlContent += `<br><span class="sub-detail">${subDetailParts.join(' ')}</span>`;
+                messageHtmlContent += `&nbsp;<span class="sub-detail">${subDetailParts.join(' ')}</span>`;
             }
             if (customMessageHtml) {
                 messageHtmlContent += `<br><span class="text-gray-300 mt-1 block">${customMessageHtml}</span>`;
