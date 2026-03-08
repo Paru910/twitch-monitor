@@ -39,10 +39,12 @@ export function addCard(data, isRestore = false) {
         'gray': { bg: 'bg-gray-800', innerBg: '', border: 'border-gray-600', textTitle: 'text-gray-400', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
         'red': { bg: 'bg-red-900', innerBg: '', border: 'border-red-500', textTitle: 'text-red-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
         // アナウンスメント用（配信者の重要告知を目立たせる）
-        'announcement': { bg: 'bg-yellow-900', innerBg: '', border: 'border-yellow-500', textTitle: 'text-yellow-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
+        'announcement': { bg: 'bg-yellow-900', innerBg: '', border: 'border-yellow-500', textTitle: 'text-yellow-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' },
+        // チャリティ寄付用（温かみのある赤系）
+        'charity': { bg: 'bg-rose-900', innerBg: '', border: 'border-rose-500', textTitle: 'text-rose-300', textContent: 'text-gray-100', textExtra: '', extraBg: '' }
     };
 
-    const colors = colorMap[data.colorClass];
+    const colors = colorMap[data.colorClass] || colorMap['gray'];
     const badgesHtml = buildBadgesHtml(data.badges);
     const messageHtmlContent = data.contentHtml !== undefined
         ? data.contentHtml
@@ -129,11 +131,18 @@ export function addCard(data, isRestore = false) {
                     ${messageTypeLabel}
                     <div class="text-sm ${colors.textContent} break-words leading-snug">${messageHtmlContent}</div>
                 `;
-    } else if (data.type === 'raid' || data.type === 'subscribe' || data.type === 'follow') {
+    } else if (data.type === 'raid' || data.type === 'subscribe' || data.type === 'follow'
+        || data.type === 'community_gift' || data.type === 'sub_upgrade'
+        || data.type === 'pay_it_forward' || data.type === 'bits_badge'
+        || data.type === 'charity' || data.type === 'system_notice') {
+        // イベント通知系カード共通テンプレート（タイトル+ユーザー名+内容）
         html = `
                     <div class="flex items-center justify-between gap-2 mb-1">
-                        <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${data.username}</span>
-                        <span class="text-[0.65rem] text-gray-400 whitespace-nowrap">${timeStr}</span>
+                        <div class="flex items-center gap-1 truncate">
+                            ${data.title ? `<span class="text-xs font-bold ${colors.textTitle} ${colors.bg} px-1.5 py-0.5 rounded whitespace-nowrap">${data.title}</span>` : ''}
+                            <span class="text-lg font-bold ${whiteTextClass} ${nameShadowClass} truncate" ${nameColorStyle}>${badgesHtml}${data.username}</span>
+                        </div>
+                        <span class="text-[0.65rem] text-gray-400 whitespace-nowrap ml-1">${timeStr}</span>
                     </div>
                     ${data.extra ? `<div class="${colors.textExtra} ${colors.extraBg} text-sm font-bold mb-1">${data.extra}</div>` : ''}
                     <div class="text-sm ${colors.textContent} break-words leading-snug mt-1">${messageHtmlContent}</div>

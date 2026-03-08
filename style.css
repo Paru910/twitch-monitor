@@ -74,6 +74,51 @@ body {
     border: 1px solid rgba(234, 179, 8, 0.5);
 }
 
+/* チアモート（Bits応援エモート）のBits数表示 */
+.cheermote-bits {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #a78bfa;
+    margin-left: 1px;
+    vertical-align: middle;
+}
+
+/* サブスクリプション詳細情報の共通コンテナ */
+.sub-detail {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 0.7rem;
+    margin-top: 2px;
+}
+
+/* 連続サブスク月数（ストリーク）バッジ */
+.sub-streak {
+    background-color: rgba(249, 115, 22, 0.3);
+    color: #fdba74;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+/* Prime Gaming サブ表示バッジ */
+.sub-prime {
+    background-color: rgba(99, 102, 241, 0.3);
+    color: #a5b4fc;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+/* ギフター情報バッジ */
+.sub-gifter {
+    background-color: rgba(236, 72, 153, 0.3);
+    color: #f9a8d4;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
 .name-shadow-thick {
     text-shadow:
         -1px -1px 0 #000, 1px -1px 0 #000,

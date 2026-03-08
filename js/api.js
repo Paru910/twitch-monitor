@@ -239,8 +239,19 @@ export function buildMessageHtml(message) {
         if (fragment.type === 'emote' && fragment.emote) {
             const emoteId = fragment.emote.id;
             const emoteName = fragment.text || fragment.emote.emote_set_id;
-            const emoteUrl = `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/default/dark/2.0`;
+            // アニメーションエモート対応: format配列にanimatedが含まれていればアニメーション版を使用
+            const format = (fragment.emote.format && fragment.emote.format.includes('animated')) ? 'animated' : 'static';
+            const emoteUrl = `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/${format}/dark/2.0`;
             return `<img src="${emoteUrl}" alt="${emoteName}" title="${emoteName}" class="inline-block align-middle" style="height:1.6em;vertical-align:middle;margin:0 2px;">`;
+        }
+        // チアモート（Bits応援エモート）の画像表示
+        if (fragment.type === 'cheermote' && fragment.cheermote) {
+            const prefix = fragment.cheermote.prefix;
+            const tier = fragment.cheermote.tier;
+            const bits = fragment.cheermote.bits;
+            // Twitchの標準チアモートURL形式
+            const cheermoteUrl = `https://d3aqoihi2n8rts.cloudfront.net/actions/${prefix}/dark/animated/${tier}/2.gif`;
+            return `<img src="${cheermoteUrl}" alt="${prefix}${bits}" title="${prefix}${bits}" class="inline-block align-middle" style="height:1.6em;vertical-align:middle;margin:0 2px;"><span class="cheermote-bits">${bits}</span>`;
         }
         // メンション（@ユーザー）をハイライト表示する
         if (fragment.type === 'mention' && fragment.mention) {
@@ -270,7 +281,7 @@ export function handleNotification(payload) {
             addCard({ type: 'raid', title: 'レイド!', username: 'テストチャンネル', contentHtml: '<span>テスト用レイド通知</span>', extra: '50人', colorClass: 'orange' });
             addCard({ type: 'follow', title: 'フォロー', username: 'テストフォロワー', contentHtml: '<span>チャンネルをフォローしました！</span>', colorClass: 'cyan' });
             addCard({ type: 'subscribe', title: 'サブスク', username: 'テストサブスクライバー', contentHtml: '<span>ティア1 サブスクライブ！🎉</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FF1493' });
-            // --- 新機能テストデータ ---
+            // --- v1.1 新機能テストデータ ---
             // リプライ（返信先）表示テスト
             addCard({ type: 'chat', title: '', username: 'リプライテストさん', contentHtml: 'これは返信メッセージです！', colorClass: 'gray', userColor: '#9ACD32', reply: { parent_user_name: chatterName, parent_message_body: '元のメッセージの内容がここに表示されます' } });
             // メンション（@ユーザー）ハイライトテスト
@@ -281,6 +292,23 @@ export function handleNotification(payload) {
             addCard({ type: 'chat', title: '', username: 'ハイライトテストさん', contentHtml: 'チャンネルポイントで目立たせたメッセージです！', colorClass: 'gray', userColor: '#DAA520', messageType: 'channel_points_highlighted' });
             // 自己紹介メッセージ（user_intro）テスト
             addCard({ type: 'chat', title: '', username: '自己紹介テストさん', contentHtml: 'はじめまして！ゲーム好きです、よろしく！', colorClass: 'gray', userColor: '#20B2AA', messageType: 'user_intro' });
+            // --- v1.2 新機能テストデータ ---
+            // コミュニティギフトサブテスト
+            addCard({ type: 'community_gift', title: '🎁 コミュニティギフト', username: 'ギフターテストさん', contentHtml: '<span>コミュニティに <strong>10個</strong> のTier 1サブギフトを贈りました！</span>', extra: '10個 / Tier 1', colorClass: 'pink', userColor: '#FF69B4' });
+            // ギフトサブ→有料アップグレードテスト
+            addCard({ type: 'sub_upgrade', title: '⬆ サブ継続', username: 'アップグレードさん', contentHtml: '<span>ギフトサブからTier 1の有料サブに継続しました！<br><span class="text-gray-400 text-xs">ギフト元: ギフターテストさん</span></span>', colorClass: 'pink', userColor: '#BA55D3' });
+            // Prime→有料アップグレードテスト
+            addCard({ type: 'sub_upgrade', title: '⬆ Prime→有料', username: 'Primeアップグレードさん', contentHtml: '<span>PrimeからTier 1の有料サブにアップグレードしました！</span>', colorClass: 'pink', userColor: '#00CED1' });
+            // ペイ・イット・フォワードテスト
+            addCard({ type: 'pay_it_forward', title: '💝 ペイフォワード', username: 'ペイフォワードさん', contentHtml: '<span>ギフトサブの恩送り！<br><span class="text-gray-400 text-xs">ギフト元: 匿名さん</span></span>', colorClass: 'pink', userColor: '#FFB6C1' });
+            // Bitsバッジティア達成テスト
+            addCard({ type: 'bits_badge', title: '💎 Bitsバッジ', username: 'Bitsコレクターさん', contentHtml: '<span>Bitsバッジ <strong>10000</strong> ティアを達成しました！</span>', colorClass: 'purple', userColor: '#9370DB' });
+            // チャリティ寄付テスト
+            addCard({ type: 'charity', title: '❤️ チャリティ寄付', username: '寄付テストさん', contentHtml: '<span><strong>$25.00</strong> を <strong>テストチャリティ団体</strong> に寄付しました！</span>', colorClass: 'charity', userColor: '#FF6347' });
+            // 再サブスク+詳細情報テスト (streak/prime/gifter)
+            addCard({ type: 'subscribe', title: 'サブスク', username: '詳細サブテストさん', contentHtml: '<span>Tier 1 サブスクライブ！🎉 (累計24ヶ月)</span><br><span class="sub-detail"><span class="sub-streak">🔥 連続 12ヶ月</span></span><br><span class="text-gray-300 mt-1 block">いつも楽しい配信ありがとう！</span>', extra: 'Tier 1', colorClass: 'pink', userColor: '#FFD700' });
+            // Prime サブテスト
+            addCard({ type: 'subscribe', title: 'サブスク', username: 'Primeサブさん', contentHtml: '<span>Prime サブスクライブ！🎉</span><br><span class="sub-detail"><span class="sub-prime">👑 Prime Gaming</span></span>', extra: 'Prime', colorClass: 'pink', userColor: '#1E90FF' });
             return;
         }
 
@@ -364,43 +392,70 @@ export function handleNotification(payload) {
         const userColor = event.color || '';
 
         if (noticeType === 'sub' || noticeType === 'resub' || noticeType === 'sub_gift') {
+            // サブスクライブ関連の通知処理（詳細情報付き）
             let tier = 'Prime/Tier 1';
             let subExtra = '';
-
             let customMessageHtml = '';
+            let subDetailParts = []; // 追加の詳細情報（連続月数・Prime・ギフター等）
 
             if (noticeType === 'sub' && event.sub) {
-                tier = event.sub.sub_tier === '1000' ? 'Tier 1' : event.sub.sub_tier === '2000' ? 'Tier 2' : event.sub.sub_tier === '3000' ? 'Tier 3' : 'Prime';
-                // (Very rare but possible according to docs) First time sub custom message
+                const isPrime = event.sub.is_prime;
+                tier = isPrime ? 'Prime' : event.sub.sub_tier === '1000' ? 'Tier 1' : event.sub.sub_tier === '2000' ? 'Tier 2' : event.sub.sub_tier === '3000' ? 'Tier 3' : 'Tier 1';
+                if (isPrime) subDetailParts.push('<span class="sub-prime">👑 Prime Gaming</span>');
+                // 初回サブのカスタムメッセージ（稀だがドキュメント上は可能）
                 if (event.sub.sub_message && event.sub.sub_message.fragments) {
                     customMessageHtml = buildMessageHtml(event.sub.sub_message);
-                } else if (event.message && event.message.fragments) { // Fallback
+                } else if (event.message && event.message.fragments) {
                     customMessageHtml = buildMessageHtml(event.message);
                 }
             } else if (noticeType === 'resub' && event.resub) {
-                tier = event.resub.sub_tier === '1000' ? 'Tier 1' : event.resub.sub_tier === '2000' ? 'Tier 2' : event.resub.sub_tier === '3000' ? 'Tier 3' : 'Prime';
-                subExtra = `(${event.resub.cumulative_months}ヶ月)`;
-                // Resub standard location for custom messages
+                const isPrime = event.resub.is_prime;
+                tier = isPrime ? 'Prime' : event.resub.sub_tier === '1000' ? 'Tier 1' : event.resub.sub_tier === '2000' ? 'Tier 2' : event.resub.sub_tier === '3000' ? 'Tier 3' : 'Tier 1';
+                subExtra = `(累計${event.resub.cumulative_months}ヶ月)`;
+                // 連続サブスク月数（streak_months）の表示
+                if (event.resub.streak_months && event.resub.streak_months > 0) {
+                    subDetailParts.push(`<span class="sub-streak">🔥 連続 ${event.resub.streak_months}ヶ月</span>`);
+                }
+                if (isPrime) subDetailParts.push('<span class="sub-prime">👑 Prime Gaming</span>');
+                // ギフトからの再サブの場合、ギフター情報を表示
+                if (event.resub.is_gift && !event.resub.gifter_is_anonymous && event.resub.gifter_user_name) {
+                    subDetailParts.push(`<span class="sub-gifter">🎁 ギフト元: ${event.resub.gifter_user_name}</span>`);
+                } else if (event.resub.is_gift && event.resub.gifter_is_anonymous) {
+                    subDetailParts.push('<span class="sub-gifter">🎁 ギフト元: 匿名さん</span>');
+                }
+                // 再サブのカスタムメッセージ
                 if (event.resub.resub_message && event.resub.resub_message.fragments) {
                     customMessageHtml = buildMessageHtml(event.resub.resub_message);
-                } else if (event.message && event.message.fragments) { // Fallback
+                } else if (event.message && event.message.fragments) {
                     customMessageHtml = buildMessageHtml(event.message);
                 }
             } else if (noticeType === 'sub_gift' && event.sub_gift) {
                 tier = event.sub_gift.sub_tier === '1000' ? 'Tier 1' : event.sub_gift.sub_tier === '2000' ? 'Tier 2' : event.sub_gift.sub_tier === '3000' ? 'Tier 3' : 'Tier 1';
                 subExtra = `ギフト (${event.sub_gift.recipient_user_name}へ)`;
-                // Gift subs rarely have a custom message for the event itself, but just in case
+                if (event.sub_gift.cumulative_total && event.sub_gift.cumulative_total > 1) {
+                    subDetailParts.push(`<span class="sub-gifter">通算 ${event.sub_gift.cumulative_total}個ギフト済み</span>`);
+                }
                 if (event.message && event.message.fragments) {
                     customMessageHtml = buildMessageHtml(event.message);
                 }
             }
 
-            let messageHtmlContent = `<span>${tier} サブスクライブ！🎉 ${subExtra}</span>`;
+            // system_messageの活用: Twitchが生成したシステムメッセージがある場合は表示
+            let messageHtmlContent = '';
+            if (event.system_message && event.system_message.trim()) {
+                messageHtmlContent = `<span>${event.system_message}</span>`;
+            } else {
+                messageHtmlContent = `<span>${tier} サブスクライブ！🎉 ${subExtra}</span>`;
+            }
+            // サブ詳細情報（連続月数・Prime・ギフター等）の追加
+            if (subDetailParts.length > 0) {
+                messageHtmlContent += `<br><span class="sub-detail">${subDetailParts.join(' ')}</span>`;
+            }
             if (customMessageHtml) {
                 messageHtmlContent += `<br><span class="text-gray-300 mt-1 block">${customMessageHtml}</span>`;
             }
 
-            const chatterId = event.chatter_user_id || event.target_user_id; // target_user_id handling for some API payload variations
+            const chatterId = event.chatter_user_id || event.target_user_id;
             let isFirstComment = false;
             if (chatterId && !state.seenUsers.has(chatterId)) {
                 isFirstComment = true;
@@ -412,10 +467,133 @@ export function handleNotification(payload) {
                 type: isFirstComment ? 'first_comment' : 'subscribe',
                 title: isFirstComment ? '初コメ ⭐ サブスク' : 'サブスク',
                 username: chatterName,
+                badges: event.badges,
                 contentHtml: messageHtmlContent,
                 extra: tier,
                 colorClass: isFirstComment ? 'sub_first' : 'pink',
                 userColor: userColor
+            });
+        } else if (noticeType === 'community_sub_gift' && event.community_sub_gift) {
+            // コミュニティギフトサブ（一括ギフト）の処理
+            const giftTier = event.community_sub_gift.sub_tier === '1000' ? 'Tier 1' : event.community_sub_gift.sub_tier === '2000' ? 'Tier 2' : event.community_sub_gift.sub_tier === '3000' ? 'Tier 3' : 'Tier 1';
+            const total = event.community_sub_gift.total;
+            const cumulativeTotal = event.community_sub_gift.cumulative_total;
+            let contentParts = `<span>コミュニティに <strong>${total}個</strong> の${giftTier}サブギフトを贈りました！</span>`;
+            if (cumulativeTotal && cumulativeTotal > total) {
+                contentParts += `<br><span class="text-gray-400 text-xs">通算 ${cumulativeTotal}個ギフト済み</span>`;
+            }
+            addCard({
+                type: 'community_gift',
+                title: '🎁 コミュニティギフト',
+                username: event.chatter_is_anonymous ? '匿名さん' : chatterName,
+                badges: event.badges,
+                contentHtml: contentParts,
+                extra: `${total}個 / ${giftTier}`,
+                colorClass: 'pink',
+                userColor: userColor
+            });
+        } else if (noticeType === 'gift_paid_upgrade' && event.gift_paid_upgrade) {
+            // ギフトサブから有料サブへのアップグレード処理
+            let gifterInfo = '';
+            if (!event.gift_paid_upgrade.gifter_is_anonymous && event.gift_paid_upgrade.gifter_user_name) {
+                gifterInfo = `<br><span class="text-gray-400 text-xs">ギフト元: ${event.gift_paid_upgrade.gifter_user_name}</span>`;
+            } else {
+                gifterInfo = '<br><span class="text-gray-400 text-xs">ギフト元: 匿名さん</span>';
+            }
+            let sysMsg = event.system_message || 'ギフトサブから有料サブに継続しました！';
+            addCard({
+                type: 'sub_upgrade',
+                title: '⬆ サブ継続',
+                username: chatterName,
+                badges: event.badges,
+                contentHtml: `<span>${sysMsg}${gifterInfo}</span>`,
+                colorClass: 'pink',
+                userColor: userColor
+            });
+        } else if (noticeType === 'prime_paid_upgrade' && event.prime_paid_upgrade) {
+            // PrimeからTier有料サブへのアップグレード処理
+            const upgradeTier = event.prime_paid_upgrade.sub_tier === '1000' ? 'Tier 1' : event.prime_paid_upgrade.sub_tier === '2000' ? 'Tier 2' : event.prime_paid_upgrade.sub_tier === '3000' ? 'Tier 3' : 'Tier 1';
+            let sysMsg = event.system_message || `Primeから${upgradeTier}の有料サブにアップグレードしました！`;
+            addCard({
+                type: 'sub_upgrade',
+                title: '⬆ Prime→有料',
+                username: chatterName,
+                badges: event.badges,
+                contentHtml: `<span>${sysMsg}</span>`,
+                colorClass: 'pink',
+                userColor: userColor
+            });
+        } else if (noticeType === 'pay_it_forward' && event.pay_it_forward) {
+            // ペイ・イット・フォワード（ギフトサブの恩送り）処理
+            let gifterInfo = '';
+            if (!event.pay_it_forward.gifter_is_anonymous && event.pay_it_forward.gifter_user_name) {
+                gifterInfo = `<br><span class="text-gray-400 text-xs">ギフト元: ${event.pay_it_forward.gifter_user_name}</span>`;
+            } else {
+                gifterInfo = '<br><span class="text-gray-400 text-xs">ギフト元: 匿名さん</span>';
+            }
+            let sysMsg = event.system_message || 'ギフトサブの恩送り！';
+            addCard({
+                type: 'pay_it_forward',
+                title: '💝 ペイフォワード',
+                username: chatterName,
+                badges: event.badges,
+                contentHtml: `<span>${sysMsg}${gifterInfo}</span>`,
+                colorClass: 'pink',
+                userColor: userColor
+            });
+        } else if (noticeType === 'bits_badge_tier' && event.bits_badge_tier) {
+            // Bitsバッジティア達成通知
+            const badgeTier = event.bits_badge_tier.tier;
+            let sysMsg = event.system_message || `Bitsバッジ ${badgeTier} ティアを達成しました！`;
+            addCard({
+                type: 'bits_badge',
+                title: '💎 Bitsバッジ',
+                username: chatterName,
+                badges: event.badges,
+                contentHtml: `<span>${sysMsg}</span>`,
+                colorClass: 'purple',
+                userColor: userColor
+            });
+        } else if (noticeType === 'charity_donation' && event.charity_donation) {
+            // チャリティ寄付通知
+            const charityName = event.charity_donation.charity_name;
+            const amount = event.charity_donation.amount;
+            const value = amount.value;
+            const decimal = amount.decimal_place;
+            const currency = amount.currency;
+            // 通貨フォーマット（小数点位置を考慮）
+            const formattedAmount = decimal > 0 ? (value / Math.pow(10, decimal)).toFixed(decimal) : value;
+            let sysMsg = event.system_message || `${currency} ${formattedAmount} を ${charityName} に寄付しました！`;
+            addCard({
+                type: 'charity',
+                title: '❤️ チャリティ寄付',
+                username: chatterName,
+                badges: event.badges,
+                contentHtml: `<span>${sysMsg}</span>`,
+                colorClass: 'charity',
+                userColor: userColor
+            });
+        } else if (noticeType === 'raid' && event.raid) {
+            // レイド通知（notification経由）— 既存のchannel.raidイベントと重複する可能性があるが
+            // shared_chat経由の場合はこちらのみ発火するため処理する
+            const raiderName = event.raid.user_name || event.raid.user_login;
+            const viewerCount = event.raid.viewer_count;
+            addCard({
+                type: 'raid',
+                title: 'レイド!',
+                username: raiderName,
+                contentHtml: `<span>🚨 <strong>${raiderName}</strong> からレイドが来ました!</span>`,
+                extra: `${viewerCount}人`,
+                colorClass: 'orange'
+            });
+        } else if (noticeType === 'unraid') {
+            // レイド解除通知
+            addCard({
+                type: 'system_notice',
+                title: 'レイド解除',
+                username: 'System',
+                contentHtml: '<span>レイドが解除されました。</span>',
+                colorClass: 'gray'
             });
         } else if (noticeType === 'announcement') {
             // アナウンスメントの処理
@@ -430,6 +608,24 @@ export function handleNotification(payload) {
                 colorClass: 'announcement',
                 userColor: userColor,
                 announcementColor: announcementColor
+            });
+        } else if (noticeType && noticeType.startsWith('shared_chat_')) {
+            // 共有チャット系の通知処理（shared_chat_sub, shared_chat_resub等）
+            // 共有チャットの通知は通常の通知と同じ構造だが、source_broadcaster情報がある
+            const sourceChannel = event.source_broadcaster_user_name || event.source_broadcaster_user_login || '';
+            const baseType = noticeType.replace('shared_chat_', '');
+            let contentText = event.system_message || `共有チャット通知 (${baseType})`;
+            if (sourceChannel) {
+                contentText += `<br><span class="text-gray-400 text-xs">📡 ${sourceChannel} から</span>`;
+            }
+            addCard({
+                type: 'system_notice',
+                title: '📡 共有チャット',
+                username: chatterName,
+                badges: event.source_badges || event.badges,
+                contentHtml: `<span>${contentText}</span>`,
+                colorClass: 'gray',
+                userColor: userColor
             });
         }
     } else if (type === 'channel.channel_points_custom_reward_redemption.add') {
